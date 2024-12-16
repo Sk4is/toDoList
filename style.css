@@ -1,0 +1,140 @@
+* {
+    font-family: 'Roboto', sans-serif;
+}
+
+body {
+    background-color: #131313;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;  
+    margin: 0;
+}
+
+.footer {
+    color: white;
+    display: flex;
+}
+
+.footer img {
+    width: 120px;
+    height: 60px;
+}
+
+.main-container {
+    font-size: 20px;
+    background-color: rgb(63, 63, 63);
+    width: 1200px;
+    padding: 10px 30px;
+    border-radius: 10px;
+    box-sizing: border-box;
+    box-shadow: 0 4px 8px rgba(159, 159, 159, 0.436);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    margin-top: 50px;
+    padding-top: 50px;
+    padding-bottom: 50px;
+}
+
+.title {
+    font-size: 65px;
+    color: white;
+    display: flex;
+    justify-content: center;
+    margin-top: 50px;
+    text-shadow: 0 4px 8px rgba(244, 244, 244, 0.3);
+}
+
+#task {
+    font-size: 20px;
+    color: #ffffff;
+    background-color: #1e1e1e;
+    width: 400px;
+    height: 50px;
+    border: 0px solid rgb(255, 255, 255);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    border-radius: 5px;
+    padding: 5px;
+    margin-right: 50px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#task:hover {
+    background-color: #333333;
+    transform: scale(1);
+}
+
+#addTask {
+    font-size: 20px;
+    color: #ffffff;
+    background-color: #1e1e1e;
+    height: 60px;
+    border: 0px solid rgb(255, 255, 255);
+    border-radius: 5px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    padding: 15px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#addTask:hover {
+    background-color: #333333;
+    transform: scale(1.05);
+}
+
+#table {
+    color: #ffffff;
+    background-color: #131313;
+    width: 90%;
+    border-spacing: 0;
+    margin: 20px 10px;
+    margin-top: 80px;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+    overflow: hidden;
+}
+
+#table th, #table td {
+    padding: 15px;
+    text-align: left;
+    font-family: 'Roboto', sans-serif;
+    font-size: 16px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+#table th {
+    background-color: #222222;
+    font-weight: bold;
+    color: #fff;
+    text-transform: uppercase;
+}
+
+button {
+    padding: 8px 15px;
+    border: none;
+    border-radius: 5px;
+    color: white;
+    cursor: pointer;
+    font-size: 14px;
+    transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.complete-btn {
+    background-color: #4CAF50;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.complete-btn:hover {
+    background-color: #45a049;
+    transform: scale(1.05);
+}
+
+.delete-btn {
+    background-color: #f44336;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+}
+
+.delete-btn:hover {
+    background-color: #d32f2f;
+    transform: scale(1.05);
+}

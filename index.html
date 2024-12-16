@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&family=Open+Sans:wght@400;600&family=Montserrat:wght@400;500&family=Nunito:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="icon" href="./images/logo.png">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <title>To-Do List</title>
+</head>
+<body>
+    <h1 class="title">TO-DO LIST</h1>
+    <div class="main-container">
+        <form action="" id="formulary">
+            <input type="text" name="task" id="task" placeholder="Write a task..." maxlength="50" required>
+            <button type="submit" id="addTask">Add Task</button>
+        </form>
+
+        <table id="table">
+            <tr>
+                <th>Task</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+            <tr id="no-tasks-row">
+                <td colspan="3" style="text-align: center;">No task found</td>
+            </tr>
+        </table>
+    </div>
+
+    <div class="footer">
+        &copy; 2016 toDoList.com
+        <img src="./images/github.png" alt="github logo">
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
