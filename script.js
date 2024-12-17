@@ -19,7 +19,13 @@ function insertrow(name) {
   completeButton.classList.add("complete-btn");
 
   completeButton.onclick = function () {
-    row.style.backgroundColor = "#1A661D";
+    if (row.style.backgroundColor === "rgb(26, 102, 29)") {
+      row.style.backgroundColor = "";
+      completeButton.style.backgroundColor = "";
+    } else {
+      row.style.backgroundColor = "#1A661D";
+      completeButton.style.backgroundColor = "#45a049";
+    }
   };
 
   deleteButton.onclick = function () {
