@@ -201,17 +201,32 @@ scanBtn.addEventListener("click", async () => {
   }
 });
 
-// Galería / cámara nativa fallback
+// Galería / cámara nativa
 scanInput.addEventListener("change", async () => {
   const file = scanInput.files?.[0];
   if (!file) return;
+
   try {
-    const bmp = await toImageBitmap(file);          // respeta orientación EXIF
-    const canvas = bitmapToProcessedCanvas(bmp);    // escala + gris + umbral
-    const text = await ocrCanvas(canvas);
-    await importDirect(text);                       // crea tareas automáticamente
+    showOcrProgress();
+
+    // 1) Cargamos respetando orientación
+    const bmp = await toImageBitmap(file);
+
+    // 2) Hacemos un lienzo base a buena escala (sin perder detalle)
+    const base = bitmapToBaseCanvas(bmp);
+
+    // 3) Generamos dos variantes: mejorada y binarizada
+    const enhanced = enhanceCanvas(base);        // gris + contraste/brillo
+    const bin      = binarizeWithOtsu(enhanced); // umbral Otsu sobre la mejorada
+
+    // 4) Probamos varias combinaciones y elegimos el mejor texto
+    const text = await ocrMulti(bin, enhanced);
+
+    Swal.close();
+    await importDirect(text);
   } catch (e) {
     console.error(e);
+    Swal.close();
     Swal.fire({ icon: "error", title: "No se pudo leer la imagen" });
   } finally {
     scanInput.value = "";
@@ -360,16 +375,143 @@ function otsuThreshold(data) {
   return thr;
 }
 
-// ===== OCR helpers =====
+// Reemplaza tu ocrCanvas por esta:
 async function ocrCanvas(canvas) {
   showOcrProgress();
-  try {
-    const blob = await new Promise(res => canvas.toBlob(res, "image/png", 1));
-    const { data } = await Tesseract.recognize(blob, 'spa+eng', { logger: updateOcrProgress, psm: 6 });
-    Swal.close();
-    return data?.text || "";
-  } catch (e) { Swal.close(); throw e; }
+
+  // Creamos variantes a partir del canvas recibido
+  const enhanced = enhanceCanvas(canvas);
+  const bin = binarizeWithOtsu(enhanced);
+
+  const text = await ocrMulti(bin, enhanced);
+
+  Swal.close();
+  return text;
 }
+
+// Escala base (máx 2560px lado largo) sin emborronar
+function bitmapToBaseCanvas(img) {
+  const MAX = 2560;                        // subimos límite para más detalle
+  const w = img.width || img.naturalWidth;
+  const h = img.height || img.naturalHeight;
+  let cw = w, ch = h;
+  if (Math.max(w, h) > MAX) {
+    const s = MAX / Math.max(w, h);
+    cw = Math.round(w * s);
+    ch = Math.round(h * s);
+  }
+  const c = document.createElement("canvas");
+  c.width = cw; c.height = ch;
+  const g = c.getContext("2d", { willReadFrequently: true });
+  g.imageSmoothingEnabled = true;          // suavizado al reducir
+  g.drawImage(img, 0, 0, cw, ch);
+  return c;
+}
+
+// Grises + realce de contraste/brillo (mejora bordes)
+function enhanceCanvas(src) {
+  const c = document.createElement("canvas");
+  c.width = src.width; c.height = src.height;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+
+  // Aplicamos filtros de dibujo para ganar contraste y quitar color
+  ctx.filter = "grayscale(100%) contrast(140%) brightness(108%)";
+  ctx.drawImage(src, 0, 0, c.width, c.height);
+
+  // Un “toque” de nitidez (unsharp mask simple)
+  const id = ctx.getImageData(0, 0, c.width, c.height);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) {
+    const y = d[i]; // ya estamos en gris, R=G=B=Y por el filtro
+    // realce local leve
+    const v = Math.min(255, Math.max(0, y * 1.05 + 8));
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  ctx.putImageData(id, 0, 0);
+  return c;
+}
+
+// Umbral de Otsu sobre la imagen mejorada
+function binarizeWithOtsu(src) {
+  const c = document.createElement("canvas");
+  c.width = src.width; c.height = src.height;
+  const ctx = c.getContext("2d", { willReadFrequently: true });
+  ctx.drawImage(src, 0, 0);
+  const id = ctx.getImageData(0, 0, c.width, c.height);
+  const d = id.data;
+
+  // Histograma en gris
+  const hist = new Array(256).fill(0);
+  for (let i = 0; i < d.length; i += 4) hist[d[i]]++;
+
+  // Otsu
+  const total = d.length / 4;
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, max = 0, thr = 127;
+  for (let t = 0; t < 256; t++) {
+    wB += hist[t]; if (!wB) continue;
+    const wF = total - wB; if (!wF) break;
+    sumB += t * hist[t];
+    const mB = sumB / wB, mF = (sum - sumB) / wF;
+    const between = wB * wF * (mB - mF) ** 2;
+    if (between > max) { max = between; thr = t; }
+  }
+
+  // Binarización
+  for (let i = 0; i < d.length; i += 4) {
+    const v = d[i] > thr ? 255 : 0;
+    d[i] = d[i + 1] = d[i + 2] = v;
+  }
+  ctx.putImageData(id, 0, 0);
+  return c;
+}
+
+// Probamos varias combinaciones (bin/enhanced x PSM 4/6) y elegimos la mejor
+async function ocrMulti(binCanvas, enhancedCanvas) {
+  const variants = [
+    { img: binCanvas,      psm: 4 },
+    { img: enhancedCanvas, psm: 4 },
+    { img: binCanvas,      psm: 6 },
+    { img: enhancedCanvas, psm: 6 },
+  ];
+
+  let best = { score: -Infinity, text: "" };
+
+  for (const v of variants) {
+    const blob = await new Promise(res => v.img.toBlob(res, "image/png", 1));
+    const opts = {
+      logger: updateOcrProgress,
+      // Lenguas
+      // psm: 4=columna de texto; 6=bloque uniforme
+      psm: v.psm,
+      // Afinar OCR:
+      preserve_interword_spaces: "1",
+      user_defined_dpi: "300",
+      load_system_dawg: "1",
+      load_freq_dawg: "1",
+      // Evitar símbolos raros: dejamos letras (incluye tildes), dígitos, espacio y separadores sencillos
+      tessedit_char_whitelist:
+        "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÜÑabcdefghijklmnopqrstuvwxyzáéíóúüñ 0123456789-.,;:/()xX%",
+    };
+
+    const { data } = await Tesseract.recognize(blob, "spa+eng", opts);
+    const text = (data && data.text) ? data.text : "";
+    const items = parseShopping(text);
+    const score = scoreOcr(text, items.length, data.confidence ?? 0);
+
+    if (score > best.score) best = { score, text };
+    // Criterio de parada anticipada: suficiente calidad
+    if (items.length >= 5 && (data.confidence ?? 0) > 70) break;
+  }
+  return best.text;
+}
+
+// Puntuación simple para elegir el mejor intento
+function scoreOcr(text, items, conf) {
+  // más líneas útiles + algo de confianza + algo de longitud total
+  return items * 2 + (conf / 10) + Math.min(30, text.length / 10);
+}
+
 function showOcrProgress() {
   Swal.fire({
     title: "Leyendo texto…",
