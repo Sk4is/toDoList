@@ -1,3 +1,4 @@
+// ===== Utilidades =====
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -6,6 +7,7 @@ const THEME_KEY = "todo.theme";
 
 const priorityWeight = { high: 3, medium: 2, low: 1 };
 
+// ===== Elementos =====
 const form = $("#formulary");
 const inputTask = $("#task");
 const inputDue = $("#due");
@@ -23,19 +25,37 @@ const countDone = $("#count-done");
 
 const clearCompletedBtn = $("#clearCompleted");
 const markAllDoneBtn = $("#markAllDone");
-
 const themeToggle = $("#themeToggle");
 
-let tasks = loadTasks();
-let ui = {
-  query: "",
-  filter: "all",
-  sort: "createdDesc",
-};
+// === Captura: un botón y un input (usamos ambos flujos)
+const scanBtn = $("#scanBtn");
+const scanInput = $("#scanInput");
 
+// === Modal de cámara (getUserMedia)
+const cameraModal = $("#cameraModal");
+const camClose = $("#camClose");
+const camPreview = $("#camPreview");
+const camCanvas = $("#camCanvas");
+const camShot = $("#camShot");
+const camSwitch = $("#camSwitch");
+const camTorch = $("#camTorch");
+const camRotateL = $("#camRotateL");
+const camRotateR = $("#camRotateR");
+
+let camStream = null;
+let usingFacing = "environment";
+let torchOn = false;
+let rotation = 0;
+
+// ===== Estado =====
+let tasks = loadTasks();
+let ui = { query: "", filter: "all", sort: "createdDesc" };
+
+// ===== Inicio =====
 restoreTheme();
 render();
 
+// ===== Listeners =====
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = inputTask.value.trim();
@@ -66,21 +86,12 @@ form.addEventListener("submit", (e) => {
   });
 });
 
-search.addEventListener("input", () => {
-  ui.query = search.value.trim().toLowerCase();
-  render();
-});
-filterStatus.addEventListener("change", () => {
-  ui.filter = filterStatus.value;
-  render();
-});
-sortBy.addEventListener("change", () => {
-  ui.sort = sortBy.value;
-  render();
-});
+search.addEventListener("input", () => { ui.query = search.value.trim().toLowerCase(); render(); });
+filterStatus.addEventListener("change", () => { ui.filter = filterStatus.value; render(); });
+sortBy.addEventListener("change", () => { ui.sort = sortBy.value; render(); });
 
 clearCompletedBtn.addEventListener("click", async () => {
-  if (!tasks.some((t) => t.completed)) return;
+  if (!tasks.some(t => t.completed)) return;
   const res = await Swal.fire({
     title: "Eliminar completadas",
     text: "¿Seguro que quieres eliminar todas las tareas completadas?",
@@ -88,24 +99,19 @@ clearCompletedBtn.addEventListener("click", async () => {
     showCancelButton: true,
     confirmButtonText: "Sí",
     cancelButtonText: "No",
-    reverseButtons: true,
+    reverseButtons: true
   });
   if (res.isConfirmed) {
-    tasks = tasks.filter((t) => !t.completed);
+    tasks = tasks.filter(t => !t.completed);
     saveTasks();
     render();
-    Swal.fire({
-      icon: "success",
-      title: "Eliminadas",
-      timer: 1200,
-      showConfirmButton: false,
-    });
+    Swal.fire({ icon: "success", title: "Eliminadas", timer: 1200, showConfirmButton: false });
   }
 });
 
 markAllDoneBtn.addEventListener("click", () => {
-  const allCompleted = tasks.every((t) => t.completed);
-  tasks = tasks.map((t) => ({ ...t, completed: !allCompleted }));
+  const allCompleted = tasks.every(t => t.completed);
+  tasks = tasks.map(t => ({ ...t, completed: !allCompleted }));
   saveTasks();
   render();
 });
@@ -115,12 +121,13 @@ themeToggle.addEventListener("click", () => {
   localStorage.setItem(THEME_KEY, isLight ? "light" : "dark");
 });
 
+// Delegación de eventos para acciones de filas (tabla)
 tbody.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
   const tr = btn.closest("tr");
   const id = tr?.dataset.id;
-  const task = tasks.find((t) => t.id === id);
+  const task = tasks.find(t => t.id === id);
   if (!task) return;
 
   const action = btn.dataset.action;
@@ -128,8 +135,7 @@ tbody.addEventListener("click", async (e) => {
   if (action === "toggle") {
     task.completed = !task.completed;
     task.updatedAt = Date.now();
-    saveTasks();
-    render();
+    saveTasks(); render();
   }
 
   if (action === "edit") {
@@ -144,132 +150,134 @@ tbody.addEventListener("click", async (e) => {
       showCancelButton: true,
       confirmButtonText: "Sí",
       cancelButtonText: "No",
-      reverseButtons: true,
+      reverseButtons: true
     });
     if (res.isConfirmed) {
-      tasks = tasks.filter((t) => t.id !== id);
-      saveTasks();
-      render();
-      Swal.fire({
-        icon: "success",
-        title: "Tarea eliminada",
-        timer: 1200,
-        showConfirmButton: false,
-      });
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks(); render();
+      Swal.fire({ icon: "success", title: "Tarea eliminada", timer: 1200, showConfirmButton: false });
     }
   }
 });
 
+// Doble click en título para editar
 tbody.addEventListener("dblclick", async (e) => {
   const cell = e.target.closest("td.editable");
   if (!cell) return;
   const tr = cell.closest("tr");
   const id = tr.dataset.id;
-  const task = tasks.find((t) => t.id === id);
+  const task = tasks.find(t => t.id === id);
   if (!task) return;
 
   await editTask(task);
 });
 
-const ocrBtn = $("#ocrBtn");
-const ocrInput = $("#ocrInput");
+// ======== CAPTURA: Cámara o Galería ========
 
-const cameraModal = $("#cameraModal");
-const camClose = $("#camClose");
-const camPreview = $("#camPreview");
-const camCanvas = $("#camCanvas");
-const camShot = $("#camShot");
-const camSwitch = $("#camSwitch");
-const camTorch = $("#camTorch");
-const camRotateL = $("#camRotateL");
-const camRotateR = $("#camRotateR");
-
-let camStream = null;
-let usingFacing = "environment";
-let torchOn = false;
-let rotation = 0;
-
-ocrBtn.addEventListener("click", async () => {
-  await openCameraModal();
+// Botón principal: elegir cámara (modal) o galería (input)
+scanBtn.addEventListener("click", async () => {
+  const res = await Swal.fire({
+    title: "Añadir desde foto",
+    text: "¿Cómo quieres capturar la lista?",
+    showDenyButton: true,
+    showCancelButton: true,
+    confirmButtonText: "Cámara",
+    denyButtonText: "Galería",
+    cancelButtonText: "Cancelar",
+  });
+  if (res.isConfirmed) {
+    // Intentamos getUserMedia; si falla, caemos a input con capture
+    try {
+      await openCameraModal();
+    } catch {
+      scanInput.setAttribute("capture", "environment");
+      scanInput.click();
+      // quitamos capture tras abrir para que no fuerce cámara siempre
+      setTimeout(() => scanInput.removeAttribute("capture"), 0);
+    }
+  } else if (res.isDenied) {
+    scanInput.removeAttribute("capture");
+    scanInput.click();
+  }
 });
 
-ocrInput.addEventListener("change", async () => {
-  const file = ocrInput.files?.[0];
+// Galería / cámara nativa fallback
+scanInput.addEventListener("change", async () => {
+  const file = scanInput.files?.[0];
   if (!file) return;
-  const img = await fileToImage(file);
-  const text = await runOcrFromImageElement(img, { rotation: 0 });
-  await previewAndImport(text);
-  ocrInput.value = "";
+  try {
+    const bmp = await toImageBitmap(file);          // respeta orientación EXIF
+    const canvas = bitmapToProcessedCanvas(bmp);    // escala + gris + umbral
+    const text = await ocrCanvas(canvas);
+    await importDirect(text);                       // crea tareas automáticamente
+  } catch (e) {
+    console.error(e);
+    Swal.fire({ icon: "error", title: "No se pudo leer la imagen" });
+  } finally {
+    scanInput.value = "";
+  }
 });
+
+// ==== Modal de cámara (getUserMedia) ====
+async function openCameraModal() {
+  rotation = 0; torchOn = false;
+  cameraModal.hidden = false;
+  await startCamera();
+}
 
 camClose.addEventListener("click", closeCameraModal);
 camSwitch.addEventListener("click", async () => {
   usingFacing = usingFacing === "environment" ? "user" : "environment";
   await startCamera();
 });
-camTorch.addEventListener("click", async () => {
-  await toggleTorch();
-});
-camRotateL.addEventListener("click", () => {
-  rotation = (rotation - 90 + 360) % 360;
-});
-camRotateR.addEventListener("click", () => {
-  rotation = (rotation + 90) % 360;
-});
+camTorch.addEventListener("click", async () => { await toggleTorch(); });
+camRotateL.addEventListener("click", () => { rotation = (rotation - 90 + 360) % 360; });
+camRotateR.addEventListener("click", () => { rotation = (rotation + 90) % 360; });
 
 camShot.addEventListener("click", async () => {
   if (!camStream) return;
   try {
     const frame = captureFrame({ rotation });
-    const text = await runOcrFromCanvas(frame);
-    await previewAndImport(text);
+    const text = await ocrCanvas(frame);
+    closeCameraModal();
+    await importDirect(text);
   } catch (e) {
     console.error(e);
     Swal.fire({ icon: "error", title: "No se pudo leer la imagen" });
   }
 });
 
-async function openCameraModal() {
-  rotation = 0;
-  torchOn = false;
-  cameraModal.hidden = false;
-  await startCamera();
-}
+function closeCameraModal() { stopCamera(); cameraModal.hidden = true; }
 
 async function startCamera() {
   stopCamera();
-  const constraints = {
-    audio: false,
-    video: {
-      facingMode: usingFacing,
-      width: { ideal: 1920 },
-      height: { ideal: 1080 },
-      focusMode: "continuous",
-      advanced: [{ focusMode: "continuous" }],
-    },
-  };
   try {
-    camStream = await navigator.mediaDevices.getUserMedia(constraints);
+    camStream = await navigator.mediaDevices.getUserMedia({
+      audio: false,
+      video: {
+        facingMode: usingFacing,
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
+    });
     camPreview.srcObject = camStream;
-
+    // Espera a que el video tenga dimensiones
+    await new Promise((res) => {
+      if (camPreview.readyState >= 2) res();
+      else camPreview.onloadedmetadata = () => res();
+    });
     await setTorch(false);
   } catch (err) {
-    console.error(err);
+    stopCamera();
     cameraModal.hidden = true;
-    ocrInput.click();
+    // Propaga para que el flujo haga fallback a <input capture>
+    throw err;
   }
 }
 
 function stopCamera() {
-  if (camStream) {
-    camStream.getTracks().forEach((t) => t.stop());
-    camStream = null;
-  }
-}
-
-function closeCameraModal() {
-  stopCamera();
-  cameraModal.hidden = true;
+  camStream?.getTracks?.().forEach(t => t.stop());
+  camStream = null;
 }
 
 async function toggleTorch() {
@@ -277,85 +285,60 @@ async function toggleTorch() {
   const ok = await setTorch(torchOn);
   if (!ok) {
     torchOn = false;
-    Swal.fire({
-      icon: "info",
-      title: "Linterna no soportada",
-      timer: 1200,
-      showConfirmButton: false,
-    });
+    Swal.fire({ icon: "info", title: "Linterna no soportada", timer: 1200, showConfirmButton: false });
   }
 }
-
 async function setTorch(on) {
   try {
     const track = camStream?.getVideoTracks?.()[0];
-    if (!track) return false;
-    const capabilities = track.getCapabilities?.();
-    if (!capabilities || !capabilities.torch) return false;
+    const caps = track?.getCapabilities?.();
+    if (!track || !caps?.torch) return false;
     await track.applyConstraints({ advanced: [{ torch: on }] });
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
+// Capturar frame + preprocesado (gris + umbral)
 function captureFrame({ rotation = 0 } = {}) {
   const video = camPreview;
-  const vw = video.videoWidth;
-  const vh = video.videoHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) throw new Error("Video no listo");
 
   const MAX_SIDE = 2048;
-  let cw = vw,
-    ch = vh;
+  let cw = vw, ch = vh;
   if (Math.max(vw, vh) > MAX_SIDE) {
-    const scale = MAX_SIDE / Math.max(vw, vh);
-    cw = Math.round(vw * scale);
-    ch = Math.round(vh * scale);
+    const s = MAX_SIDE / Math.max(vw, vh);
+    cw = Math.round(vw * s); ch = Math.round(vh * s);
   }
 
   const rot = rotation % 360;
-  const rad = (rot * Math.PI) / 180;
-  const needsSwap = rot === 90 || rot === 270;
-  const W = needsSwap ? ch : cw;
-  const H = needsSwap ? cw : ch;
+  const swap = rot === 90 || rot === 270;
+  const W = swap ? ch : cw;
+  const H = swap ? cw : ch;
 
-  camCanvas.width = W;
-  camCanvas.height = H;
+  camCanvas.width = W; camCanvas.height = H;
   const ctx = camCanvas.getContext("2d");
 
   ctx.save();
-  if (rot === 90) {
-    ctx.translate(W, 0);
-  } else if (rot === 180) {
-    ctx.translate(W, H);
-  } else if (rot === 270) {
-    ctx.translate(0, H);
-  }
-  ctx.rotate(rad);
-
-  const dx = 0,
-    dy = 0,
-    dw = cw,
-    dh = ch;
-  ctx.drawImage(video, dx, dy, dw, dh);
+  if (rot === 90) ctx.translate(W, 0);
+  if (rot === 180) ctx.translate(W, H);
+  if (rot === 270) ctx.translate(0, H);
+  ctx.rotate(rot * Math.PI / 180);
+  ctx.drawImage(video, 0, 0, cw, ch);
   ctx.restore();
 
-  const imgData = ctx.getImageData(0, 0, W, H);
-  const data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const r = data[i],
-      g = data[i + 1],
-      b = data[i + 2];
-    const y = r * 0.299 + g * 0.587 + b * 0.114;
-    data[i] = data[i + 1] = data[i + 2] = y;
+  const id = ctx.getImageData(0, 0, W, H);
+  const d = id.data;
+  for (let i = 0; i < d.length; i += 4) { // gris
+    const y = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
+    d[i]=d[i+1]=d[i+2]=y;
   }
-  const thresh = otsuThreshold(data);
-  for (let i = 0; i < data.length; i += 4) {
-    const v = data[i] > thresh ? 255 : 0;
-    data[i] = data[i + 1] = data[i + 2] = v;
+  const th = otsuThreshold(d);
+  for (let i = 0; i < d.length; i += 4) { // binario
+    const v = d[i] > th ? 255 : 0;
+    d[i]=d[i+1]=d[i+2]=v;
   }
-  ctx.putImageData(imgData, 0, 0);
+  ctx.putImageData(id, 0, 0);
 
   return camCanvas;
 }
@@ -363,103 +346,30 @@ function captureFrame({ rotation = 0 } = {}) {
 function otsuThreshold(data) {
   const hist = new Array(256).fill(0);
   for (let i = 0; i < data.length; i += 4) hist[data[i]]++;
-
   const total = data.length / 4;
-  let sum = 0;
-  for (let i = 0; i < 256; i++) sum += i * hist[i];
-
-  let sumB = 0,
-    wB = 0,
-    wF = 0,
-    mB = 0,
-    mF = 0,
-    max = 0,
-    between = 0,
-    thresh = 127;
-  for (let t = 0; t < 256; t++) {
-    wB += hist[t];
-    if (wB === 0) continue;
-    wF = total - wB;
-    if (wF === 0) break;
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, max = 0, thr = 127;
+  for (let t = 0, wF = 0; t < 256; t++) {
+    wB += hist[t]; if (!wB) continue;
+    wF = total - wB; if (!wF) break;
     sumB += t * hist[t];
-    mB = sumB / wB;
-    mF = (sum - sumB) / wF;
-    between = wB * wF * (mB - mF) * (mB - mF);
-    if (between > max) {
-      max = between;
-      thresh = t;
-    }
+    const mB = sumB / wB, mF = (sum - sumB) / wF;
+    const between = wB * wF * (mB - mF) * (mB - mF);
+    if (between > max) { max = between; thr = t; }
   }
-  return thresh;
+  return thr;
 }
 
-async function runOcrFromCanvas(canvas) {
+// ===== OCR helpers =====
+async function ocrCanvas(canvas) {
   showOcrProgress();
   try {
-    const blob = await new Promise((res) => canvas.toBlob(res, "image/png", 1));
-    const { data } = await Tesseract.recognize(blob, "spa+eng", {
-      logger: updateOcrProgress,
-      tessedit_char_whitelist:
-        "abcdefghijklmnñopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZáéíóúÁÉÍÓÚüÜ0123456789-•·.,;:()[]{} ",
-      psm: 6,
-    });
+    const blob = await new Promise(res => canvas.toBlob(res, "image/png", 1));
+    const { data } = await Tesseract.recognize(blob, 'spa+eng', { logger: updateOcrProgress, psm: 6 });
     Swal.close();
     return data?.text || "";
-  } catch (e) {
-    Swal.close();
-    throw e;
-  }
+  } catch (e) { Swal.close(); throw e; }
 }
-
-async function runOcrFromImageElement(img, { rotation = 0 } = {}) {
-  const temp = document.createElement("canvas");
-  const tctx = temp.getContext("2d");
-  const w = img.naturalWidth,
-    h = img.naturalHeight;
-
-  const MAX = 2048;
-  let cw = w,
-    ch = h;
-  if (Math.max(w, h) > MAX) {
-    const sc = MAX / Math.max(w, h);
-    cw = Math.round(w * sc);
-    ch = Math.round(h * sc);
-  }
-  const needsSwap = rotation === 90 || rotation === 270;
-  temp.width = needsSwap ? ch : cw;
-  temp.height = needsSwap ? cw : ch;
-
-  tctx.save();
-  if (rotation === 90) {
-    tctx.translate(temp.width, 0);
-  }
-  if (rotation === 180) {
-    tctx.translate(temp.width, temp.height);
-  }
-  if (rotation === 270) {
-    tctx.translate(0, temp.height);
-  }
-  tctx.rotate((rotation * Math.PI) / 180);
-  tctx.drawImage(img, 0, 0, cw, ch);
-  tctx.restore();
-
-  const ctx = tctx;
-  const imgData = ctx.getImageData(0, 0, temp.width, temp.height);
-  const data = imgData.data;
-  for (let i = 0; i < data.length; i += 4) {
-    const y = data[i] * 0.299 + data[i + 1] * 0.587 + data[i + 2] * 0.114;
-    data[i] = data[i + 1] = data[i + 2] = y;
-  }
-  const th = otsuThreshold(data);
-  for (let i = 0; i < data.length; i += 4) {
-    const v = data[i] > th ? 255 : 0;
-    data[i] = data[i + 1] = data[i + 2] = v;
-  }
-  ctx.putImageData(imgData, 0, 0);
-
-  return runOcrFromCanvas(temp);
-}
-
 function showOcrProgress() {
   Swal.fire({
     title: "Leyendo texto…",
@@ -468,95 +378,78 @@ function showOcrProgress() {
              <div id="ocrBar" style="height:100%;width:0%;background:#08dcdc;transition:width .2s ease;"></div>
            </div>`,
     allowOutsideClick: false,
-    didOpen: () => Swal.showLoading(),
+    didOpen: () => Swal.showLoading()
   });
 }
-
 function updateOcrProgress(m) {
-  const text = document.getElementById("ocrProgressText");
-  const bar = document.getElementById("ocrBar");
-  if (!text || !bar) return;
-  if (m.status)
-    text.textContent = `${m.status} (${Math.round((m.progress || 0) * 100)}%)`;
-  if (typeof m.progress === "number")
-    bar.style.width = `${Math.round(m.progress * 100)}%`;
+  const t = document.getElementById('ocrProgressText');
+  const b = document.getElementById('ocrBar');
+  if (t && m.status) t.textContent = `${m.status} (${Math.round((m.progress||0)*100)}%)`;
+  if (b && typeof m.progress === 'number') b.style.width = `${Math.round(m.progress*100)}%`;
 }
 
-function fileToImage(file) {
-  return new Promise((resolve, reject) => {
-    const img = new Image();
-    img.onload = () => resolve(img);
-    img.onerror = reject;
-    img.src = URL.createObjectURL(file);
+// Carga respetando orientación EXIF si hay createImageBitmap
+async function toImageBitmap(file) {
+  if ('createImageBitmap' in window) {
+    return await createImageBitmap(file, { imageOrientation: 'from-image' });
+  }
+  // Fallback
+  const img = await new Promise((resolve, reject) => {
+    const i = new Image(); i.onload = () => resolve(i); i.onerror = reject;
+    i.src = URL.createObjectURL(file);
   });
+  return img;
+}
+function bitmapToProcessedCanvas(img) {
+  const MAX = 2048;
+  const w = img.width || img.naturalWidth;
+  const h = img.height || img.naturalHeight;
+  let cw = w, ch = h;
+  if (Math.max(w,h) > MAX) {
+    const s = MAX / Math.max(w,h); cw = Math.round(w*s); ch = Math.round(h*s);
+  }
+  const c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  const g = c.getContext('2d');
+  g.drawImage(img, 0, 0, cw, ch);
+
+  const id = g.getImageData(0,0,cw,ch);
+  const d = id.data;
+  for (let i=0;i<d.length;i+=4) {
+    const y = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
+    d[i]=d[i+1]=d[i+2]=y;
+  }
+  const th = otsuThreshold(d);
+  for (let i=0;i<d.length;i+=4) {
+    const v = d[i]>th ? 255:0; d[i]=d[i+1]=d[i+2]=v;
+  }
+  g.putImageData(id,0,0);
+  return c;
 }
 
-async function previewAndImport(text) {
-  const lines = parseShopping(text);
-  if (!lines.length) {
-    await Swal.fire({
-      icon: "info",
-      title: "No se detectó texto útil",
-      text: "Prueba acercándote y con mejor luz.",
-    });
+/* === Importación directa: una línea = una tarea === */
+async function importDirect(text) {
+  const items = parseShopping(text);
+  if (!items.length) {
+    await Swal.fire({ icon:'info', title:'No se detectó texto útil', text:'Acércate más y usa buena luz.' });
     return;
   }
-
-  const listHtml = lines
-    .map(
-      (t, i) =>
-        `<label style="display:flex;align-items:center;gap:8px;margin:6px 0">
-      <input type="checkbox" checked data-idx="${i}"> <span>${escapeHtml(
-          t
-        )}</span>
-    </label>`
-    )
-    .join("");
-
-  const { value: ok } = await Swal.fire({
-    title: "Selecciona lo que quieres importar",
-    html: `<div style="text-align:left;max-height:300px;overflow:auto;padding-right:6px">${listHtml}</div>`,
-    showCancelButton: true,
-    confirmButtonText: "Importar",
-    cancelButtonText: "Cancelar",
-    preConfirm: () => {
-      const checks = [
-        ...document.querySelectorAll('input[type="checkbox"][data-idx]'),
-      ];
-      const chosen = checks
-        .filter((c) => c.checked)
-        .map((c) => lines[+c.dataset.idx]);
-      if (!chosen.length) {
-        Swal.showValidationMessage("No seleccionaste ningún ítem");
-        return false;
-      }
-      return chosen;
-    },
-  });
-
-  if (ok && Array.isArray(ok)) {
-    const now = Date.now();
-    const newTasks = ok.map((name) => ({
-      id: crypto.randomUUID(),
-      name,
-      due: null,
-      priority: "medium",
-      completed: false,
-      createdAt: now,
-      updatedAt: now,
-    }));
-    tasks = [...newTasks, ...tasks];
-    saveTasks();
-    render();
-    Swal.fire({
-      icon: "success",
-      title: `Importadas ${newTasks.length} tareas`,
-      timer: 1300,
-      showConfirmButton: false,
-    });
-  }
+  const now = Date.now();
+  const newTasks = items.map(name => ({
+    id: crypto.randomUUID(),
+    name,
+    due: null,
+    priority: "medium",
+    completed: false,
+    createdAt: now,
+    updatedAt: now
+  }));
+  tasks = [...newTasks, ...tasks];
+  saveTasks(); render();
+  Swal.fire({ icon:"success", title:`Importadas ${newTasks.length} tareas`, timer:1200, showConfirmButton:false });
 }
 
+/* Parser para listas de la compra */
 function parseShopping(input) {
   if (!input) return [];
   const raw = input
@@ -565,35 +458,31 @@ function parseShopping(input) {
     .replace(/\t+/g, " ")
     .replace(/ +/g, " ");
 
-  const parts = raw
-    .split(/\n|[,;]+/g)
-    .map((s) =>
-      s
-        .replace(/^\s*[\d]{1,3}[.)]\s*/g, "")
-        .replace(/^\s*(x\s*\d+|\d+\s*x)\s*/i, "")
-        .replace(/^\s*\d+(\,\d+)?\s*(kg|g|gr|l|ml|uds?|unidades)\b\.?/i, "")
-        .replace(/\b\d+(\,\d+)?\s*(kg|g|gr|l|ml|uds?|unidades)\b\.?/gi, "")
-        .replace(/\s+/g, " ")
-        .trim()
+  const parts = raw.split(/\n|[,;]+/g)
+    .map(s => s
+      .replace(/^\s*[\d]{1,3}[.)]\s*/g, "")
+      .replace(/^\s*(x\s*\d+|\d+\s*x)\s*/i, "")
+      .replace(/^\s*\d+([.,]\d+)?\s*(kg|g|gr|l|ml|uds?|unidades)\b\.?/i, "")
+      .replace(/\b\d+([.,]\d+)?\s*(kg|g|gr|l|ml|uds?|unidades)\b\.?/gi, "")
+      .replace(/\s+/g, " ").trim()
     )
     .filter(Boolean)
-    .filter((s) => s.length >= 2)
-    .map((s) => s.replace(/^[-–—]\s*/, ""));
+    .filter(s => s.length >= 2)
+    .map(s => s.replace(/^[-–—]\s*/, ""));
 
   const seen = new Set();
-  const result = [];
+  const out = [];
   for (const s of parts) {
     const k = s.toLowerCase();
-    if (!seen.has(k)) {
-      seen.add(k);
-      result.push(s);
-    }
+    if (!seen.has(k)) { seen.add(k); out.push(s); }
   }
-  return result;
+  return out;
 }
 
+// ===== Render =====
 function render() {
-  let list = tasks.filter((t) => {
+  // Filtro + búsqueda
+  let list = tasks.filter(t => {
     const matchQuery = !ui.query || t.name.toLowerCase().includes(ui.query);
     const matchFilter =
       ui.filter === "all" ||
@@ -602,12 +491,11 @@ function render() {
     return matchQuery && matchFilter;
   });
 
+  // Orden
   list.sort((a, b) => {
     switch (ui.sort) {
-      case "createdAsc":
-        return a.createdAt - b.createdAt;
-      case "createdDesc":
-        return b.createdAt - a.createdAt;
+      case "createdAsc":  return a.createdAt - b.createdAt;
+      case "createdDesc": return b.createdAt - a.createdAt;
       case "dueAsc": {
         const ad = a.due ? new Date(a.due).getTime() : Infinity;
         const bd = b.due ? new Date(b.due).getTime() : Infinity;
@@ -618,14 +506,13 @@ function render() {
         const bd = b.due ? new Date(b.due).getTime() : -Infinity;
         return bd - ad;
       }
-      case "priorityDesc":
-        return priorityWeight[b.priority] - priorityWeight[a.priority];
-      case "priorityAsc":
-        return priorityWeight[a.priority] - priorityWeight[b.priority];
+      case "priorityDesc": return priorityWeight[b.priority] - priorityWeight[a.priority];
+      case "priorityAsc":  return priorityWeight[a.priority] - priorityWeight[b.priority];
     }
     return 0;
   });
 
+  // Construir filas
   tbody.innerHTML = "";
 
   if (list.length === 0) {
@@ -640,15 +527,13 @@ function render() {
     tbody.appendChild(frag);
   }
 
+  // Contadores
   countTotal.textContent = `Total: ${tasks.length}`;
-  countPending.textContent = `Pendientes: ${
-    tasks.filter((t) => !t.completed).length
-  }`;
-  countDone.textContent = `Completadas: ${
-    tasks.filter((t) => t.completed).length
-  }`;
+  countPending.textContent = `Pendientes: ${tasks.filter(t => !t.completed).length}`;
+  countDone.textContent = `Completadas: ${tasks.filter(t => t.completed).length}`;
 }
 
+// ===== Plantilla de fila (con data-label para móvil) =====
 function rowTemplate(t) {
   const tr = document.createElement("tr");
   tr.dataset.id = t.id;
@@ -665,22 +550,16 @@ function rowTemplate(t) {
   }
 
   tr.innerHTML = `
-    <td class="editable">
+    <td class="editable" data-label="Tarea">
       <span class="task-title">${escapeHtml(t.name)}</span>
-      <span class="meta">Creada: ${new Date(
-        t.createdAt
-      ).toLocaleString()}</span>
+      <span class="meta">Creada: ${new Date(t.createdAt).toLocaleString()}</span>
     </td>
-    <td>${t.due ? dueLabel : "—"}</td>
-    <td><span class="badge ${t.priority}">${prioText(t.priority)}</span></td>
-    <td><span class="state-chip ${t.completed ? "" : "pending"}">${
-    t.completed ? "Completada" : "Pendiente"
-  }</span></td>
-    <td class="actions-col">
+    <td data-label="Fecha">${t.due ? dueLabel : "—"}</td>
+    <td data-label="Prioridad"><span class="badge ${t.priority}">${prioText(t.priority)}</span></td>
+    <td data-label="Estado"><span class="state-chip ${t.completed ? "" : "pending"}">${t.completed ? "Completada" : "Pendiente"}</span></td>
+    <td class="actions-col" data-label="Acciones">
       <div class="row-actions">
-        <button class="btn btn-success" data-action="toggle">${
-          t.completed ? "Desmarcar" : "Completar"
-        }</button>
+        <button class="btn btn-success" data-action="toggle">${t.completed ? "Desmarcar" : "Completar"}</button>
         <button class="btn btn-edit" data-action="edit">Editar</button>
         <button class="btn btn-danger" data-action="delete">Eliminar</button>
       </div>
@@ -689,32 +568,23 @@ function rowTemplate(t) {
   return tr;
 }
 
+// ===== Editar tarea (modal) =====
 async function editTask(task) {
   const { value: formValues } = await Swal.fire({
     title: "Editar tarea",
     html: `
-      <input id="swal-name" class="swal2-input" placeholder="Título" value="${escapeAttr(
-        task.name
-      )}" maxlength="80">
-      <input id="swal-due" type="date" class="swal2-input" value="${
-        task.due || ""
-      }">
+      <input id="swal-name" class="swal2-input" placeholder="Título" value="${escapeAttr(task.name)}" maxlength="80">
+      <input id="swal-due" type="date" class="swal2-input" value="${task.due || ""}">
       <select id="swal-prio" class="swal2-input">
-        <option value="high" ${
-          task.priority === "high" ? "selected" : ""
-        }>Alta</option>
-        <option value="medium" ${
-          task.priority === "medium" ? "selected" : ""
-        }>Media</option>
-        <option value="low" ${
-          task.priority === "low" ? "selected" : ""
-        }>Baja</option>
+        <option value="high" ${task.priority === "high" ? "selected" : ""}>Alta</option>
+        <option value="medium" ${task.priority === "medium" ? "selected" : ""}>Media</option>
+        <option value="low" ${task.priority === "low" ? "selected" : ""}>Baja</option>
       </select>
     `,
     focusConfirm: false,
     preConfirm: () => {
       const name = document.getElementById("swal-name").value.trim();
-      const due = document.getElementById("swal-due").value || null;
+      const due  = document.getElementById("swal-due").value || null;
       const prio = document.getElementById("swal-prio").value;
       if (!name) {
         Swal.showValidationMessage("El título no puede estar vacío");
@@ -724,7 +594,7 @@ async function editTask(task) {
     },
     showCancelButton: true,
     confirmButtonText: "Guardar",
-    cancelButtonText: "Cancelar",
+    cancelButtonText: "Cancelar"
   });
 
   if (formValues) {
@@ -732,80 +602,25 @@ async function editTask(task) {
     task.due = formValues.due;
     task.priority = formValues.priority;
     task.updatedAt = Date.now();
-    saveTasks();
-    render();
-    Swal.fire({
-      icon: "success",
-      title: "Cambios guardados",
-      timer: 1200,
-      showConfirmButton: false,
-    });
+    saveTasks(); render();
+    Swal.fire({ icon: "success", title: "Cambios guardados", timer: 1200, showConfirmButton: false });
   }
 }
 
+// ===== Persistencia =====
 function loadTasks() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
-function saveTasks() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-}
-
+function saveTasks() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
 function restoreTheme() {
   const pref = localStorage.getItem(THEME_KEY);
   if (pref === "light") document.documentElement.classList.add("light");
 }
 
-function prioText(p) {
-  return p === "high" ? "Alta" : p === "low" ? "Baja" : "Media";
-}
-function escapeHtml(str) {
-  return str.replace(
-    /[&<>"']/g,
-    (m) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[
-        m
-      ])
-  );
-}
-function escapeAttr(str) {
-  return escapeHtml(str);
-}
-
-/**
- * parseLines
- * Normaliza el texto OCR en una lista de ítems (una línea por tarea).
- * - Divide por saltos de línea y separadores comunes (, ; • - * ·)
- * - Limpia viñetas y numeración
- * - Quita vacíos, muy cortos y duplicados secuenciales
- */
-function parseLines(input) {
-  if (!input) return [];
-  const SEP = /[\n,;]+/g;
-  const rawParts = input
-    .replace(/\r/g, "\n")
-    .split(SEP)
-    .flatMap((p) => p.split(/(?:•|·|–|-|\*)/g));
-
-  const cleaned = rawParts
-    .map((s) =>
-      s
-        .replace(/^\s*[\d]{1,3}[.)\]]\s*/g, "")
-        .replace(/^\s*(?:•|·|–|-|\*)\s*/g, "")
-        .replace(/\s+/g, " ")
-        .trim()
-    )
-    .filter((s) => s.length >= 2);
-
-  const deduped = [];
-  for (const s of cleaned) {
-    if (deduped[deduped.length - 1]?.toLowerCase() !== s.toLowerCase()) {
-      deduped.push(s);
-    }
-  }
-  return deduped;
-}
+// ===== Helpers =====
+function prioText(p) { return p === "high" ? "Alta" : p === "low" ? "Baja" : "Media"; }
+function escapeHtml(str) { return str.replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function escapeAttr(str) { return escapeHtml(str); }

@@ -644,6 +644,8 @@ tbody td {
   }
 }
 
+
+
 @media (max-width: 480px) {
   .app-header {
     grid-template-columns: 1fr auto;
@@ -718,3 +720,5 @@ tbody td {
     flex: 1 1 100%;
   }
 }
+
+
