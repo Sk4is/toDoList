@@ -233,6 +233,18 @@ scanInput.addEventListener("change", async () => {
   }
 });
 
+// Polyfill toBlob para Safari/iOS antiguos
+if (!HTMLCanvasElement.prototype.toBlob) {
+  HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
+    const dataURL = this.toDataURL(type, quality);
+    const bin = atob(dataURL.split(",")[1]);
+    const len = bin.length;
+    const arr = new Uint8Array(len);
+    for (let i = 0; i < len; i++) arr[i] = bin.charCodeAt(i);
+    callback(new Blob([arr], { type: type || "image/png" }));
+  };
+}
+
 // ==== Modal de cámara (getUserMedia) ====
 async function openCameraModal() {
   rotation = 0; torchOn = false;
@@ -250,15 +262,28 @@ camRotateL.addEventListener("click", () => { rotation = (rotation - 90 + 360) % 
 camRotateR.addEventListener("click", () => { rotation = (rotation + 90) % 360; });
 
 camShot.addEventListener("click", async () => {
-  if (!camStream) return;
   try {
+    // Si no hay stream, reintenta iniciar cámara
+    if (!camStream) {
+      await startCamera();
+    }
+
+    // Asegura que el video tiene frame listo
+    await ensureVideoReady(camPreview);
+
+    // Evita doble click mientras procesa
+    camShot.disabled = true;
+
     const frame = captureFrame({ rotation });
     const text = await ocrCanvas(frame);
+
     closeCameraModal();
     await importDirect(text);
   } catch (e) {
     console.error(e);
     Swal.fire({ icon: "error", title: "No se pudo leer la imagen" });
+  } finally {
+    camShot.disabled = false;
   }
 });
 
@@ -267,6 +292,10 @@ function closeCameraModal() { stopCamera(); cameraModal.hidden = true; }
 async function startCamera() {
   stopCamera();
   try {
+    camPreview.setAttribute("playsinline", ""); // iOS
+    camPreview.playsInline = true;
+    camPreview.muted = true;
+
     camStream = await navigator.mediaDevices.getUserMedia({
       audio: false,
       video: {
@@ -275,20 +304,49 @@ async function startCamera() {
         height: { ideal: 1080 }
       }
     });
+
     camPreview.srcObject = camStream;
-    // Espera a que el video tenga dimensiones
-    await new Promise((res) => {
-      if (camPreview.readyState >= 2) res();
-      else camPreview.onloadedmetadata = () => res();
-    });
+
+    // Espera a que el video tenga dimensiones reales
+    await ensureVideoReady(camPreview);
+
+    // Apaga linterna por defecto
     await setTorch(false);
   } catch (err) {
     stopCamera();
     cameraModal.hidden = true;
-    // Propaga para que el flujo haga fallback a <input capture>
-    throw err;
+    throw err; // deja que haga fallback al <input capture>
   }
 }
+
+async function ensureVideoReady(video) {
+  try { await video.play(); } catch {} // algunos navegadores exigen play()
+  if (video.readyState >= 2 && video.videoWidth && video.videoHeight) return;
+
+  await new Promise((resolve) => {
+    let done = false;
+    const onReady = () => {
+      if (done) return;
+      if (video.videoWidth && video.videoHeight) {
+        done = true;
+        video.removeEventListener("loadedmetadata", onReady);
+        video.removeEventListener("canplay", onReady);
+        resolve();
+      }
+    };
+    video.addEventListener("loadedmetadata", onReady);
+    video.addEventListener("canplay", onReady);
+
+    // requestVideoFrameCallback disponible en Chrome/Safari modernos
+    if ("requestVideoFrameCallback" in video) {
+      video.requestVideoFrameCallback(() => onReady());
+    }
+
+    // Fallback de seguridad
+    setTimeout(onReady, 800);
+  });
+}
+
 
 function stopCamera() {
   camStream?.getTracks?.().forEach(t => t.stop());
