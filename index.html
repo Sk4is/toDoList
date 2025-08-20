@@ -85,8 +85,8 @@
           </select>
         </div>
         <div class="group">
-          <button id="ocrBtn" class="ghost-btn" type="button">
-            Escanear lista (OCR)
+          <button id="scanBtn" class="ghost-btn" type="button">
+            Añadir desde foto
           </button>
           <button id="clearCompleted" class="ghost-btn" type="button">
             Eliminar completadas
@@ -95,13 +95,8 @@
             Marcar todas
           </button>
         </div>
-        <input
-          id="ocrInput"
-          type="file"
-          accept="image/*"
-          capture="environment"
-          hidden
-        />
+
+        <input id="scanInput" type="file" accept="image/*" hidden />
       </section>
 
       <div class="table-wrapper" role="region" aria-label="Lista de tareas">
@@ -151,11 +146,13 @@
               ↻ 90°
             </button>
             <button id="camShot" class="primary-btn" type="button">
-              Capturar y leer
+              Capturar
             </button>
           </div>
         </div>
       </div>
+
+      <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
     </main>
 
     <footer>
