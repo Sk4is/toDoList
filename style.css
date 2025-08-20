@@ -365,6 +365,16 @@ td.empty {
   color: var(--muted);
 }
 
+.swal2-actions.swal-actions-stack {
+  display: grid !important;
+  grid-template-columns: 1fr;
+  gap: 8px;
+  width: 100%;
+}
+.swal2-actions.swal-actions-stack .swal2-styled {
+  margin: 0 !important;
+}
+
 .camodal {
   position: fixed;
   inset: 0;
