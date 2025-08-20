@@ -1,112 +1,173 @@
 <!DOCTYPE html>
 <html lang="es">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TO-DO LIST</title>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>TO-DO LIST</title>
 
-  <!-- Fuentes -->
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@400;600;700&display=swap" rel="stylesheet">
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Lexend:wght@400;600;700&display=swap"
+      rel="stylesheet"
+    />
 
-  <!-- Icono -->
-  <link rel="icon" href="./images/logo.png">
+    <link rel="icon" href="./images/logo.png" />
 
-  <!-- SweetAlert2 -->
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <!-- Tesseract.js (OCR) -->
-  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 
-  <!-- Estilos -->
-  <link rel="stylesheet" href="style.css" />
-</head>
-<body>
-  <header class="app-header">
-    <div class="brand">
-      <img src="./images/logo.png" alt="Logo" class="logo" />
-      <h1 class="title">TO-DO LIST</h1>
-    </div>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="app-header">
+      <div class="brand">
+        <img src="./images/logo.png" alt="Logo" class="logo" />
+        <h1 class="title">TO-DO LIST</h1>
+      </div>
 
-    <div class="quick-stats" aria-live="polite">
-      <span id="count-total" class="chip">Total: 0</span>
-      <span id="count-pending" class="chip">Pendientes: 0</span>
-      <span id="count-done" class="chip">Completadas: 0</span>
-    </div>
+      <div class="quick-stats" aria-live="polite">
+        <span id="count-total" class="chip">Total: 0</span>
+        <span id="count-pending" class="chip">Pendientes: 0</span>
+        <span id="count-done" class="chip">Completadas: 0</span>
+      </div>
 
-    <button id="themeToggle" class="icon-btn" aria-label="Cambiar tema" title="Cambiar tema">
-      <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
-        <path d="M21.64 13a9 9 0 01-10.63-10.63A9 9 0 1021.64 13z"></path>
-      </svg>
-    </button>
-  </header>
+      <button
+        id="themeToggle"
+        class="icon-btn"
+        aria-label="Cambiar tema"
+        title="Cambiar tema"
+      >
+        <svg width="22" height="22" viewBox="0 0 24 24" aria-hidden="true">
+          <path d="M21.64 13a9 9 0 01-10.63-10.63A9 9 0 1021.64 13z"></path>
+        </svg>
+      </button>
+    </header>
 
-  <main class="main-container">
-    <!-- Formulario de alta -->
-    <form id="formulary" autocomplete="off" class="add-form">
-      <input type="text" id="task" name="task" placeholder="Escribe una tarea..." maxlength="80" required aria-label="Nueva tarea" />
-      <input type="date" id="due" name="due" aria-label="Fecha límite" />
-      <select id="priority" name="priority" aria-label="Prioridad">
-        <option value="medium" selected>Prioridad media</option>
-        <option value="low">Prioridad baja</option>
-        <option value="high">Prioridad alta</option>
-      </select>
-      <button type="submit" id="addTask" class="primary-btn">Agregar</button>
-    </form>
-
-    <section class="toolbar">
-      <div class="group">
-        <input type="search" id="search" placeholder="Buscar..." aria-label="Buscar tareas" />
-        <select id="filterStatus" aria-label="Filtrar por estado">
-          <option value="all" selected>Ver: Todas</option>
-          <option value="pending">Solo pendientes</option>
-          <option value="completed">Solo completadas</option>
+    <main class="main-container">
+      <form id="formulary" autocomplete="off" class="add-form">
+        <input
+          type="text"
+          id="task"
+          name="task"
+          placeholder="Escribe una tarea..."
+          maxlength="80"
+          required
+          aria-label="Nueva tarea"
+        />
+        <input type="date" id="due" name="due" aria-label="Fecha límite" />
+        <select id="priority" name="priority" aria-label="Prioridad">
+          <option value="medium" selected>Prioridad media</option>
+          <option value="low">Prioridad baja</option>
+          <option value="high">Prioridad alta</option>
         </select>
-        <select id="sortBy" aria-label="Ordenar">
-          <option value="createdDesc" selected>Orden: Recientes</option>
-          <option value="createdAsc">Orden: Antiguas</option>
-          <option value="dueAsc">Vencen antes</option>
-          <option value="dueDesc">Vencen después</option>
-          <option value="priorityDesc">Prioridad alta primero</option>
-          <option value="priorityAsc">Prioridad baja primero</option>
-        </select>
-      </div>
-      <div class="group">
-        <button id="ocrBtn" class="ghost-btn" type="button">Escanear lista (OCR)</button>
-        <button id="clearCompleted" class="ghost-btn" type="button">Eliminar completadas</button>
-        <button id="markAllDone" class="ghost-btn" type="button">Marcar todas</button>
-      </div>
-      <input id="ocrInput" type="file" accept="image/*" capture="environment" hidden>
-    </section>
+        <button type="submit" id="addTask" class="primary-btn">Agregar</button>
+      </form>
 
-    <div class="table-wrapper" role="region" aria-label="Lista de tareas">
-      <table id="table">
-        <thead>
-          <tr>
-            <th>Tarea</th>
-            <th>Fecha</th>
-            <th>Prioridad</th>
-            <th>Estado</th>
-            <th class="actions-col">Acciones</th>
-          </tr>
-        </thead>
-        <tbody id="tbody">
-          <tr id="no-tasks-row">
-            <td colspan="5" class="empty">Sin tareas</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </main>
+      <section class="toolbar">
+        <div class="group">
+          <input
+            type="search"
+            id="search"
+            placeholder="Buscar..."
+            aria-label="Buscar tareas"
+          />
+          <select id="filterStatus" aria-label="Filtrar por estado">
+            <option value="all" selected>Ver: Todas</option>
+            <option value="pending">Solo pendientes</option>
+            <option value="completed">Solo completadas</option>
+          </select>
+          <select id="sortBy" aria-label="Ordenar">
+            <option value="createdDesc" selected>Orden: Recientes</option>
+            <option value="createdAsc">Orden: Antiguas</option>
+            <option value="dueAsc">Vencen antes</option>
+            <option value="dueDesc">Vencen después</option>
+            <option value="priorityDesc">Prioridad alta primero</option>
+            <option value="priorityAsc">Prioridad baja primero</option>
+          </select>
+        </div>
+        <div class="group">
+          <button id="ocrBtn" class="ghost-btn" type="button">
+            Escanear lista (OCR)
+          </button>
+          <button id="clearCompleted" class="ghost-btn" type="button">
+            Eliminar completadas
+          </button>
+          <button id="markAllDone" class="ghost-btn" type="button">
+            Marcar todas
+          </button>
+        </div>
+        <input
+          id="ocrInput"
+          type="file"
+          accept="image/*"
+          capture="environment"
+          hidden
+        />
+      </section>
 
-  <footer>
-    <div class="footer-content">
-      <div class="footer-left">© 2016–2025 To-Do List</div>
-      <div class="footer-center">Aviso Legal | Privacidad | Términos</div>
-      <div class="footer-right">
-        <img src="./images/logo.png" alt="Logotipo" class="footer-logo" />
+      <div class="table-wrapper" role="region" aria-label="Lista de tareas">
+        <table id="table">
+          <thead>
+            <tr>
+              <th>Tarea</th>
+              <th>Fecha</th>
+              <th>Prioridad</th>
+              <th>Estado</th>
+              <th class="actions-col">Acciones</th>
+            </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr id="no-tasks-row">
+              <td colspan="5" class="empty">Sin tareas</td>
+            </tr>
+          </tbody>
+        </table>
       </div>
-    </div>
-  </footer>
 
-  <script src="script.js"></script>
-</body>
+      <div id="cameraModal" class="camodal" hidden>
+        <div class="camodal-inner">
+          <header class="camodal-header">
+            <h3>Escanear lista</h3>
+            <button id="camClose" class="icon-btn" aria-label="Cerrar">
+              ✕
+            </button>
+          </header>
+
+          <div class="camodal-body">
+            <video id="camPreview" playsinline autoplay muted></video>
+            <canvas id="camCanvas" hidden></canvas>
+          </div>
+
+          <div class="camodal-actions">
+            <button id="camSwitch" class="ghost-btn" type="button">
+              Cambiar cámara
+            </button>
+            <button id="camTorch" class="ghost-btn" type="button">
+              Linterna
+            </button>
+            <button id="camRotateL" class="ghost-btn" type="button">
+              ↺ 90°
+            </button>
+            <button id="camRotateR" class="ghost-btn" type="button">
+              ↻ 90°
+            </button>
+            <button id="camShot" class="primary-btn" type="button">
+              Capturar y leer
+            </button>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div class="footer-content">
+        <div class="footer-left">© 2016–2025 To-Do List</div>
+        <div class="footer-center">Aviso Legal | Privacidad | Términos</div>
+        <div class="footer-right">
+          <img src="./images/logo.png" alt="Logotipo" class="footer-logo" />
+        </div>
+      </div>
+    </footer>
+
+    <script src="script.js"></script>
+  </body>
 </html>
