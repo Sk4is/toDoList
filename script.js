@@ -174,28 +174,23 @@ tbody.addEventListener("dblclick", async (e) => {
 
 // ======== CAPTURA: Cámara o Galería ========
 
-// Botón principal: elegir cámara (modal) o galería (input)
+// Abrir cámara directamente (móvil) o modal (desktop) con fallback
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+
 scanBtn.addEventListener("click", async () => {
-  const res = await Swal.fire({
-    title: "Añadir desde foto",
-    text: "¿Cómo quieres capturar la lista?",
-    showDenyButton: true,
-    showCancelButton: true,
-    confirmButtonText: "Cámara",
-    denyButtonText: "Galería",
-    cancelButtonText: "Cancelar",
-  });
-  if (res.isConfirmed) {
-    // Intentamos getUserMedia; si falla, caemos a input con capture
-    try {
-      await openCameraModal();
-    } catch {
-      scanInput.setAttribute("capture", "environment");
-      scanInput.click();
-      // quitamos capture tras abrir para que no fuerce cámara siempre
-      setTimeout(() => scanInput.removeAttribute("capture"), 0);
-    }
-  } else if (res.isDenied) {
+  if (isMobile) {
+    // Cámara nativa del SO (muestra "Capturar foto")
+    scanInput.setAttribute("capture", "environment");
+    scanInput.click();
+    // quitar el atributo para no forzar cámara en siguientes usos
+    setTimeout(() => scanInput.removeAttribute("capture"), 0);
+    return;
+  }
+
+  // En escritorio intenta getUserMedia; si falla, abre selector de archivos
+  try {
+    await openCameraModal();
+  } catch {
     scanInput.removeAttribute("capture");
     scanInput.click();
   }
