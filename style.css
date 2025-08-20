@@ -420,59 +420,17 @@ td.empty {
   object-fit: contain;
   max-height: 70vh;
 }
-
-/* --- Cámara: acciones más pequeñas y responsivas --- */
-.camodal-actions{
-  display:grid;
-  grid-template-columns:repeat(5, minmax(0,1fr));
-  gap:8px;
-  padding:10px;
-  border-top:1px solid var(--border);
+.camodal-actions {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--border);
 }
-.camodal-actions .ghost-btn,
-.camodal-actions .primary-btn{
-  min-width:0;
-  height:36px;          /* ↓ más compacto */
-  padding:0 10px;
-  font-size:12px;
-  border-radius:10px;
-}
-
-/* Escalonado por anchura: 4 → 3 → 2 columnas */
-@media (max-width:800px){
-  .camodal-actions{ grid-template-columns:repeat(4, minmax(0,1fr)); }
-}
-@media (max-width:600px){
-  .camodal-actions{ grid-template-columns:repeat(3, minmax(0,1fr)); gap:6px; }
-  .camodal-actions .ghost-btn,
-  .camodal-actions .primary-btn{ height:34px; font-size:11px; }
-}
-@media (max-width:400px){
-  .camodal-actions{ grid-template-columns:repeat(2, minmax(0,1fr)); gap:6px; }
-  .camodal-actions .ghost-btn,
-  .camodal-actions .primary-btn{ height:32px; font-size:11px; padding:0 8px; }
-}
-
-/* --- Cámara: minimizar bandas negras en móvil --- */
-.camodal{ padding:0; }
-.camodal-inner{
-  width:100%;
-  max-width:none;
-  height:100dvh;              /* ocupa todo el alto útil */
-  max-height:100dvh;
-  border-radius:0;            /* a pantalla completa */
-}
-.camodal-header,
-.camodal-actions{ padding:8px; }
-.camodal-body{
-  background:#000;
-  height:100%;
-}
-#camPreview,#camCanvas{
-  width:100%;
-  height:100%;
-  max-height:none;
-  object-fit:cover;           /* rellena, sin franjas negras */
+@media (max-width: 420px) {
+  .camodal-actions {
+    grid-template-columns: repeat(2, 1fr);
+  }
 }
 
 html,
