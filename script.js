@@ -252,26 +252,27 @@ async function openCameraModal() {
   await startCamera();
 }
 
-camClose.addEventListener("click", closeCameraModal);
-camSwitch.addEventListener("click", async () => {
+camClose?.addEventListener("click", closeCameraModal);
+
+camSwitch?.addEventListener("click", async () => {
   usingFacing = usingFacing === "environment" ? "user" : "environment";
   await startCamera();
 });
-camTorch.addEventListener("click", async () => { await toggleTorch(); });
-camRotateL.addEventListener("click", () => { rotation = (rotation - 90 + 360) % 360; });
-camRotateR.addEventListener("click", () => { rotation = (rotation + 90) % 360; });
 
-camShot.addEventListener("click", async () => {
+// Estos botones ya no existen en tu HTML; protégelos para que no rompan
+camTorch?.addEventListener("click", async () => { await toggleTorch(); });
+camRotateL?.addEventListener("click", () => { rotation = (rotation - 90 + 360) % 360; });
+camRotateR?.addEventListener("click", () => { rotation = (rotation + 90) % 360; });
+
+// IMPORTANTE: registra SIEMPRE el listener de Capturar
+camShot?.addEventListener("click", async () => {
   try {
-    // Si no hay stream, reintenta iniciar cámara
-    if (!camStream) {
-      await startCamera();
-    }
+    // inicia/reinicia cámara si no hay stream
+    if (!camStream) { await startCamera(); }
 
-    // Asegura que el video tiene frame listo
+    // asegura frame listo antes de capturar
     await ensureVideoReady(camPreview);
 
-    // Evita doble click mientras procesa
     camShot.disabled = true;
 
     const frame = captureFrame({ rotation });
