@@ -1,4 +1,3 @@
-/* Fuentes base */
 :root {
   --bg: #0f1115;
   --card: #171a21cc;
@@ -20,8 +19,8 @@
   --card: #ffffffee;
   --text: #0f172a;
   --muted: #475569;
-  --primary: #0ea5e9;
-  --primary-2: #0284c7;
+  --primary: #08dcdc;
+  --primary-2: #13a0a0;
   --accent: #67e8f9;
   --success: #16a34a;
   --danger: #dc2626;
@@ -525,7 +524,6 @@ thead th {
   }
 }
 
-/* ====== CAMARA: modal 100% viewport + acciones siempre visibles ====== */
 .camodal {
   position: fixed;
   inset: 0;
@@ -553,7 +551,7 @@ thead th {
 .camodal-body {
   position: relative;
   background: #000;
-  min-height: 0; /* permite que el video calcule bien altura */
+  min-height: 0;
 }
 
 #camPreview,
@@ -562,7 +560,7 @@ thead th {
   height: 100%;
   max-height: none;
   display: block;
-  object-fit: contain; /* sin recorte; cambia a 'cover' si prefieres sin bandas */
+  object-fit: contain;
 }
 
 .camodal-actions {
@@ -582,14 +580,11 @@ thead th {
   }
 }
 
-/* Evita que el body haga scroll detrás del modal */
 body.no-scroll {
   overflow: hidden;
 }
 
-/* ====== TABLA: sin scroll horizontal en móvil y más compacta ====== */
 @media (max-width: 640px) {
-  /* Oculta la columna FECHA (th y td 2) */
   thead th:nth-child(2),
   tbody td:nth-child(2) {
     display: none;
@@ -604,7 +599,6 @@ body.no-scroll {
     padding: 10px 12px;
   }
 
-  /* Acciones más estrechas */
   .actions-col {
     width: auto;
   }
@@ -617,7 +611,6 @@ body.no-scroll {
   }
 }
 
-/* ====== ACCIONES: texto en desktop, iconos compactos en móvil ====== */
 .btn .ico {
   display: none;
   line-height: 0;
@@ -636,10 +629,10 @@ body.no-scroll {
   }
   .btn .txt {
     display: none;
-  } /* ahorra ancho en móvil */
+  }
   .row-actions {
     flex-wrap: nowrap;
-  } /* evitas que “salten” de línea */
+  }
 }
 
 footer {
