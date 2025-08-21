@@ -79,21 +79,12 @@ form.addEventListener("submit", (e) => {
   });
 });
 
-search.addEventListener("input", () => {
-  ui.query = search.value.trim().toLowerCase();
-  render();
-});
-filterStatus.addEventListener("change", () => {
-  ui.filter = filterStatus.value;
-  render();
-});
-sortBy.addEventListener("change", () => {
-  ui.sort = sortBy.value;
-  render();
-});
+search.addEventListener("input", () => { ui.query = search.value.trim().toLowerCase(); render(); });
+filterStatus.addEventListener("change", () => { ui.filter = filterStatus.value; render(); });
+sortBy.addEventListener("change", () => { ui.sort = sortBy.value; render(); });
 
 clearCompletedBtn.addEventListener("click", async () => {
-  if (!tasks.some((t) => t.completed)) return;
+  if (!tasks.some(t => t.completed)) return;
   const res = await Swal.fire({
     title: "Eliminar completadas",
     text: "¿Seguro que quieres eliminar todas las tareas completadas?",
@@ -101,24 +92,19 @@ clearCompletedBtn.addEventListener("click", async () => {
     showCancelButton: true,
     confirmButtonText: "Sí",
     cancelButtonText: "No",
-    reverseButtons: true,
+    reverseButtons: true
   });
   if (res.isConfirmed) {
-    tasks = tasks.filter((t) => !t.completed);
+    tasks = tasks.filter(t => !t.completed);
     saveTasks();
     render();
-    Swal.fire({
-      icon: "success",
-      title: "Eliminadas",
-      timer: 1200,
-      showConfirmButton: false,
-    });
+    Swal.fire({ icon: "success", title: "Eliminadas", timer: 1200, showConfirmButton: false });
   }
 });
 
 markAllDoneBtn.addEventListener("click", () => {
-  const allCompleted = tasks.every((t) => t.completed);
-  tasks = tasks.map((t) => ({ ...t, completed: !allCompleted }));
+  const allCompleted = tasks.every(t => t.completed);
+  tasks = tasks.map(t => ({ ...t, completed: !allCompleted }));
   saveTasks();
   render();
 });
@@ -133,7 +119,7 @@ tbody.addEventListener("click", async (e) => {
   if (!btn) return;
   const tr = btn.closest("tr");
   const id = tr?.dataset.id;
-  const task = tasks.find((t) => t.id === id);
+  const task = tasks.find(t => t.id === id);
   if (!task) return;
 
   const action = btn.dataset.action;
@@ -141,8 +127,7 @@ tbody.addEventListener("click", async (e) => {
   if (action === "toggle") {
     task.completed = !task.completed;
     task.updatedAt = Date.now();
-    saveTasks();
-    render();
+    saveTasks(); render();
   }
 
   if (action === "edit") {
@@ -157,18 +142,12 @@ tbody.addEventListener("click", async (e) => {
       showCancelButton: true,
       confirmButtonText: "Sí",
       cancelButtonText: "No",
-      reverseButtons: true,
+      reverseButtons: true
     });
     if (res.isConfirmed) {
-      tasks = tasks.filter((t) => t.id !== id);
-      saveTasks();
-      render();
-      Swal.fire({
-        icon: "success",
-        title: "Tarea eliminada",
-        timer: 1200,
-        showConfirmButton: false,
-      });
+      tasks = tasks.filter(t => t.id !== id);
+      saveTasks(); render();
+      Swal.fire({ icon: "success", title: "Tarea eliminada", timer: 1200, showConfirmButton: false });
     }
   }
 });
@@ -178,7 +157,7 @@ tbody.addEventListener("dblclick", async (e) => {
   if (!cell) return;
   const tr = cell.closest("tr");
   const id = tr.dataset.id;
-  const task = tasks.find((t) => t.id === id);
+  const task = tasks.find(t => t.id === id);
   if (!task) return;
 
   await editTask(task);
@@ -220,7 +199,7 @@ scanInput.addEventListener("change", async () => {
     const base = bitmapToBaseCanvas(bmp);
 
     const enhanced = enhanceCanvas(base);
-    const bin = binarizeWithOtsu(enhanced);
+    const bin      = binarizeWithOtsu(enhanced);
 
     const text = await ocrMulti(bin, enhanced);
 
@@ -247,8 +226,7 @@ if (!HTMLCanvasElement.prototype.toBlob) {
 }
 
 async function openCameraModal() {
-  rotation = 0;
-  torchOn = false;
+  rotation = 0; torchOn = false;
   document.body.classList.add("no-scroll");
   cameraModal.hidden = false;
   await startCamera();
@@ -261,21 +239,13 @@ camSwitch?.addEventListener("click", async () => {
   await startCamera();
 });
 
-camTorch?.addEventListener("click", async () => {
-  await toggleTorch();
-});
-camRotateL?.addEventListener("click", () => {
-  rotation = (rotation - 90 + 360) % 360;
-});
-camRotateR?.addEventListener("click", () => {
-  rotation = (rotation + 90) % 360;
-});
+camTorch?.addEventListener("click", async () => { await toggleTorch(); });
+camRotateL?.addEventListener("click", () => { rotation = (rotation - 90 + 360) % 360; });
+camRotateR?.addEventListener("click", () => { rotation = (rotation + 90) % 360; });
 
 camShot?.addEventListener("click", async () => {
   try {
-    if (!camStream) {
-      await startCamera();
-    }
+    if (!camStream) { await startCamera(); }
 
     await ensureVideoReady(camPreview);
 
@@ -311,9 +281,9 @@ async function startCamera() {
       audio: false,
       video: {
         facingMode: usingFacing,
-        width: { ideal: window.innerWidth },
-        height: { ideal: window.innerHeight },
-      },
+        width: { ideal: 1920 },
+        height: { ideal: 1080 }
+      }
     });
 
     camPreview.srcObject = camStream;
@@ -329,9 +299,7 @@ async function startCamera() {
 }
 
 async function ensureVideoReady(video) {
-  try {
-    await video.play();
-  } catch {}
+  try { await video.play(); } catch {}
   if (video.readyState >= 2 && video.videoWidth && video.videoHeight) return;
 
   await new Promise((resolve) => {
@@ -356,8 +324,9 @@ async function ensureVideoReady(video) {
   });
 }
 
+
 function stopCamera() {
-  camStream?.getTracks?.().forEach((t) => t.stop());
+  camStream?.getTracks?.().forEach(t => t.stop());
   camStream = null;
 }
 
@@ -366,12 +335,7 @@ async function toggleTorch() {
   const ok = await setTorch(torchOn);
   if (!ok) {
     torchOn = false;
-    Swal.fire({
-      icon: "info",
-      title: "Linterna no soportada",
-      timer: 1200,
-      showConfirmButton: false,
-    });
+    Swal.fire({ icon: "info", title: "Linterna no soportada", timer: 1200, showConfirmButton: false });
   }
 }
 async function setTorch(on) {
@@ -381,24 +345,19 @@ async function setTorch(on) {
     if (!track || !caps?.torch) return false;
     await track.applyConstraints({ advanced: [{ torch: on }] });
     return true;
-  } catch {
-    return false;
-  }
+  } catch { return false; }
 }
 
 function captureFrame({ rotation = 0 } = {}) {
   const video = camPreview;
-  const vw = video.videoWidth,
-    vh = video.videoHeight;
+  const vw = video.videoWidth, vh = video.videoHeight;
   if (!vw || !vh) throw new Error("Video no listo");
 
   const MAX_SIDE = 2048;
-  let cw = vw,
-    ch = vh;
+  let cw = vw, ch = vh;
   if (Math.max(vw, vh) > MAX_SIDE) {
     const s = MAX_SIDE / Math.max(vw, vh);
-    cw = Math.round(vw * s);
-    ch = Math.round(vh * s);
+    cw = Math.round(vw * s); ch = Math.round(vh * s);
   }
 
   const rot = rotation % 360;
@@ -406,28 +365,27 @@ function captureFrame({ rotation = 0 } = {}) {
   const W = swap ? ch : cw;
   const H = swap ? cw : ch;
 
-  camCanvas.width = W;
-  camCanvas.height = H;
+  camCanvas.width = W; camCanvas.height = H;
   const ctx = camCanvas.getContext("2d");
 
   ctx.save();
   if (rot === 90) ctx.translate(W, 0);
   if (rot === 180) ctx.translate(W, H);
   if (rot === 270) ctx.translate(0, H);
-  ctx.rotate((rot * Math.PI) / 180);
+  ctx.rotate(rot * Math.PI / 180);
   ctx.drawImage(video, 0, 0, cw, ch);
   ctx.restore();
 
   const id = ctx.getImageData(0, 0, W, H);
   const d = id.data;
   for (let i = 0; i < d.length; i += 4) {
-    const y = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-    d[i] = d[i + 1] = d[i + 2] = y;
+    const y = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
+    d[i]=d[i+1]=d[i+2]=y;
   }
   const th = otsuThreshold(d);
   for (let i = 0; i < d.length; i += 4) {
     const v = d[i] > th ? 255 : 0;
-    d[i] = d[i + 1] = d[i + 2] = v;
+    d[i]=d[i+1]=d[i+2]=v;
   }
   ctx.putImageData(id, 0, 0);
 
@@ -438,25 +396,15 @@ function otsuThreshold(data) {
   const hist = new Array(256).fill(0);
   for (let i = 0; i < data.length; i += 4) hist[data[i]]++;
   const total = data.length / 4;
-  let sum = 0;
-  for (let i = 0; i < 256; i++) sum += i * hist[i];
-  let sumB = 0,
-    wB = 0,
-    max = 0,
-    thr = 127;
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, max = 0, thr = 127;
   for (let t = 0, wF = 0; t < 256; t++) {
-    wB += hist[t];
-    if (!wB) continue;
-    wF = total - wB;
-    if (!wF) break;
+    wB += hist[t]; if (!wB) continue;
+    wF = total - wB; if (!wF) break;
     sumB += t * hist[t];
-    const mB = sumB / wB,
-      mF = (sum - sumB) / wF;
+    const mB = sumB / wB, mF = (sum - sumB) / wF;
     const between = wB * wF * (mB - mF) * (mB - mF);
-    if (between > max) {
-      max = between;
-      thr = t;
-    }
+    if (between > max) { max = between; thr = t; }
   }
   return thr;
 }
@@ -477,16 +425,14 @@ function bitmapToBaseCanvas(img) {
   const MAX = 2560;
   const w = img.width || img.naturalWidth;
   const h = img.height || img.naturalHeight;
-  let cw = w,
-    ch = h;
+  let cw = w, ch = h;
   if (Math.max(w, h) > MAX) {
     const s = MAX / Math.max(w, h);
     cw = Math.round(w * s);
     ch = Math.round(h * s);
   }
   const c = document.createElement("canvas");
-  c.width = cw;
-  c.height = ch;
+  c.width = cw; c.height = ch;
   const g = c.getContext("2d", { willReadFrequently: true });
   g.imageSmoothingEnabled = true;
   g.drawImage(img, 0, 0, cw, ch);
@@ -495,8 +441,7 @@ function bitmapToBaseCanvas(img) {
 
 function enhanceCanvas(src) {
   const c = document.createElement("canvas");
-  c.width = src.width;
-  c.height = src.height;
+  c.width = src.width; c.height = src.height;
   const ctx = c.getContext("2d", { willReadFrequently: true });
 
   ctx.filter = "grayscale(100%) contrast(140%) brightness(108%)";
@@ -515,8 +460,7 @@ function enhanceCanvas(src) {
 
 function binarizeWithOtsu(src) {
   const c = document.createElement("canvas");
-  c.width = src.width;
-  c.height = src.height;
+  c.width = src.width; c.height = src.height;
   const ctx = c.getContext("2d", { willReadFrequently: true });
   ctx.drawImage(src, 0, 0);
   const id = ctx.getImageData(0, 0, c.width, c.height);
@@ -526,25 +470,15 @@ function binarizeWithOtsu(src) {
   for (let i = 0; i < d.length; i += 4) hist[d[i]]++;
 
   const total = d.length / 4;
-  let sum = 0;
-  for (let i = 0; i < 256; i++) sum += i * hist[i];
-  let sumB = 0,
-    wB = 0,
-    max = 0,
-    thr = 127;
+  let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
+  let sumB = 0, wB = 0, max = 0, thr = 127;
   for (let t = 0; t < 256; t++) {
-    wB += hist[t];
-    if (!wB) continue;
-    const wF = total - wB;
-    if (!wF) break;
+    wB += hist[t]; if (!wB) continue;
+    const wF = total - wB; if (!wF) break;
     sumB += t * hist[t];
-    const mB = sumB / wB,
-      mF = (sum - sumB) / wF;
+    const mB = sumB / wB, mF = (sum - sumB) / wF;
     const between = wB * wF * (mB - mF) ** 2;
-    if (between > max) {
-      max = between;
-      thr = t;
-    }
+    if (between > max) { max = between; thr = t; }
   }
 
   for (let i = 0; i < d.length; i += 4) {
@@ -557,16 +491,16 @@ function binarizeWithOtsu(src) {
 
 async function ocrMulti(binCanvas, enhancedCanvas) {
   const variants = [
-    { img: binCanvas, psm: 4 },
+    { img: binCanvas,      psm: 4 },
     { img: enhancedCanvas, psm: 4 },
-    { img: binCanvas, psm: 6 },
+    { img: binCanvas,      psm: 6 },
     { img: enhancedCanvas, psm: 6 },
   ];
 
   let best = { score: -Infinity, text: "" };
 
   for (const v of variants) {
-    const blob = await new Promise((res) => v.img.toBlob(res, "image/png", 1));
+    const blob = await new Promise(res => v.img.toBlob(res, "image/png", 1));
     const opts = {
       logger: updateOcrProgress,
       psm: v.psm,
@@ -579,7 +513,7 @@ async function ocrMulti(binCanvas, enhancedCanvas) {
     };
 
     const { data } = await Tesseract.recognize(blob, "spa+eng", opts);
-    const text = data && data.text ? data.text : "";
+    const text = (data && data.text) ? data.text : "";
     const items = parseShopping(text);
     const score = scoreOcr(text, items.length, data.confidence ?? 0);
 
@@ -590,7 +524,7 @@ async function ocrMulti(binCanvas, enhancedCanvas) {
 }
 
 function scoreOcr(text, items, conf) {
-  return items * 2 + conf / 10 + Math.min(30, text.length / 10);
+  return items * 2 + (conf / 10) + Math.min(30, text.length / 10);
 }
 
 function showOcrProgress() {
@@ -601,26 +535,22 @@ function showOcrProgress() {
              <div id="ocrBar" style="height:100%;width:0%;background:#08dcdc;transition:width .2s ease;"></div>
            </div>`,
     allowOutsideClick: false,
-    didOpen: () => Swal.showLoading(),
+    didOpen: () => Swal.showLoading()
   });
 }
 function updateOcrProgress(m) {
-  const t = document.getElementById("ocrProgressText");
-  const b = document.getElementById("ocrBar");
-  if (t && m.status)
-    t.textContent = `${m.status} (${Math.round((m.progress || 0) * 100)}%)`;
-  if (b && typeof m.progress === "number")
-    b.style.width = `${Math.round(m.progress * 100)}%`;
+  const t = document.getElementById('ocrProgressText');
+  const b = document.getElementById('ocrBar');
+  if (t && m.status) t.textContent = `${m.status} (${Math.round((m.progress||0)*100)}%)`;
+  if (b && typeof m.progress === 'number') b.style.width = `${Math.round(m.progress*100)}%`;
 }
 
 async function toImageBitmap(file) {
-  if ("createImageBitmap" in window) {
-    return await createImageBitmap(file, { imageOrientation: "from-image" });
+  if ('createImageBitmap' in window) {
+    return await createImageBitmap(file, { imageOrientation: 'from-image' });
   }
   const img = await new Promise((resolve, reject) => {
-    const i = new Image();
-    i.onload = () => resolve(i);
-    i.onerror = reject;
+    const i = new Image(); i.onload = () => resolve(i); i.onerror = reject;
     i.src = URL.createObjectURL(file);
   });
   return img;
@@ -629,63 +559,48 @@ function bitmapToProcessedCanvas(img) {
   const MAX = 2048;
   const w = img.width || img.naturalWidth;
   const h = img.height || img.naturalHeight;
-  let cw = w,
-    ch = h;
-  if (Math.max(w, h) > MAX) {
-    const s = MAX / Math.max(w, h);
-    cw = Math.round(w * s);
-    ch = Math.round(h * s);
+  let cw = w, ch = h;
+  if (Math.max(w,h) > MAX) {
+    const s = MAX / Math.max(w,h); cw = Math.round(w*s); ch = Math.round(h*s);
   }
-  const c = document.createElement("canvas");
-  c.width = cw;
-  c.height = ch;
-  const g = c.getContext("2d");
+  const c = document.createElement('canvas');
+  c.width = cw; c.height = ch;
+  const g = c.getContext('2d');
   g.drawImage(img, 0, 0, cw, ch);
 
-  const id = g.getImageData(0, 0, cw, ch);
+  const id = g.getImageData(0,0,cw,ch);
   const d = id.data;
-  for (let i = 0; i < d.length; i += 4) {
-    const y = d[i] * 0.299 + d[i + 1] * 0.587 + d[i + 2] * 0.114;
-    d[i] = d[i + 1] = d[i + 2] = y;
+  for (let i=0;i<d.length;i+=4) {
+    const y = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
+    d[i]=d[i+1]=d[i+2]=y;
   }
   const th = otsuThreshold(d);
-  for (let i = 0; i < d.length; i += 4) {
-    const v = d[i] > th ? 255 : 0;
-    d[i] = d[i + 1] = d[i + 2] = v;
+  for (let i=0;i<d.length;i+=4) {
+    const v = d[i]>th ? 255:0; d[i]=d[i+1]=d[i+2]=v;
   }
-  g.putImageData(id, 0, 0);
+  g.putImageData(id,0,0);
   return c;
 }
 
 async function importDirect(text) {
   const items = parseShopping(text);
   if (!items.length) {
-    await Swal.fire({
-      icon: "info",
-      title: "No se detectó texto útil",
-      text: "Acércate más y usa buena luz.",
-    });
+    await Swal.fire({ icon:'info', title:'No se detectó texto útil', text:'Acércate más y usa buena luz.' });
     return;
   }
   const now = Date.now();
-  const newTasks = items.map((name) => ({
+  const newTasks = items.map(name => ({
     id: crypto.randomUUID(),
     name,
     due: null,
     priority: "medium",
     completed: false,
     createdAt: now,
-    updatedAt: now,
+    updatedAt: now
   }));
   tasks = [...newTasks, ...tasks];
-  saveTasks();
-  render();
-  Swal.fire({
-    icon: "success",
-    title: `Importadas ${newTasks.length} tareas`,
-    timer: 1200,
-    showConfirmButton: false,
-  });
+  saveTasks(); render();
+  Swal.fire({ icon:"success", title:`Importadas ${newTasks.length} tareas`, timer:1200, showConfirmButton:false });
 }
 
 function parseShopping(input) {
@@ -696,35 +611,29 @@ function parseShopping(input) {
     .replace(/\t+/g, " ")
     .replace(/ +/g, " ");
 
-  const parts = raw
-    .split(/\n|[,;]+/g)
-    .map((s) =>
-      s
-        .replace(/^\s*[\d]{1,3}[.)]\s*/g, "")
-        .replace(/^\s*(x\s*\d+|\d+\s*x)\s*/i, "")
-        .replace(/^\s*\d+([.,]\d+)?\s*(kg|g|gr|l|ml|uds?|unidades)\b\.?/i, "")
-        .replace(/\b\d+([.,]\d+)?\s*(kg|g|gr|l|ml|uds?|unidades)\b\.?/gi, "")
-        .replace(/\s+/g, " ")
-        .trim()
+  const parts = raw.split(/\n|[,;]+/g)
+    .map(s => s
+      .replace(/^\s*[\d]{1,3}[.)]\s*/g, "")
+      .replace(/^\s*(x\s*\d+|\d+\s*x)\s*/i, "")
+      .replace(/^\s*\d+([.,]\d+)?\s*(kg|g|gr|l|ml|uds?|unidades)\b\.?/i, "")
+      .replace(/\b\d+([.,]\d+)?\s*(kg|g|gr|l|ml|uds?|unidades)\b\.?/gi, "")
+      .replace(/\s+/g, " ").trim()
     )
     .filter(Boolean)
-    .filter((s) => s.length >= 2)
-    .map((s) => s.replace(/^[-–—]\s*/, ""));
+    .filter(s => s.length >= 2)
+    .map(s => s.replace(/^[-–—]\s*/, ""));
 
   const seen = new Set();
   const out = [];
   for (const s of parts) {
     const k = s.toLowerCase();
-    if (!seen.has(k)) {
-      seen.add(k);
-      out.push(s);
-    }
+    if (!seen.has(k)) { seen.add(k); out.push(s); }
   }
   return out;
 }
 
 function render() {
-  let list = tasks.filter((t) => {
+  let list = tasks.filter(t => {
     const matchQuery = !ui.query || t.name.toLowerCase().includes(ui.query);
     const matchFilter =
       ui.filter === "all" ||
@@ -735,10 +644,8 @@ function render() {
 
   list.sort((a, b) => {
     switch (ui.sort) {
-      case "createdAsc":
-        return a.createdAt - b.createdAt;
-      case "createdDesc":
-        return b.createdAt - a.createdAt;
+      case "createdAsc":  return a.createdAt - b.createdAt;
+      case "createdDesc": return b.createdAt - a.createdAt;
       case "dueAsc": {
         const ad = a.due ? new Date(a.due).getTime() : Infinity;
         const bd = b.due ? new Date(b.due).getTime() : Infinity;
@@ -749,10 +656,8 @@ function render() {
         const bd = b.due ? new Date(b.due).getTime() : -Infinity;
         return bd - ad;
       }
-      case "priorityDesc":
-        return priorityWeight[b.priority] - priorityWeight[a.priority];
-      case "priorityAsc":
-        return priorityWeight[a.priority] - priorityWeight[b.priority];
+      case "priorityDesc": return priorityWeight[b.priority] - priorityWeight[a.priority];
+      case "priorityAsc":  return priorityWeight[a.priority] - priorityWeight[b.priority];
     }
     return 0;
   });
@@ -762,8 +667,7 @@ function render() {
 
   if (list.length === 0) {
     const ths = Array.from(document.querySelectorAll("#table thead th"));
-    const visibleCols =
-      ths.filter((th) => getComputedStyle(th).display !== "none").length || 1;
+    const visibleCols = ths.filter(th => getComputedStyle(th).display !== "none").length || 1;
     const emptyCell = noRow.querySelector("td");
     if (emptyCell) emptyCell.colSpan = visibleCols;
 
@@ -780,12 +684,8 @@ function render() {
   }
 
   countTotal.textContent = `Total: ${tasks.length}`;
-  countPending.textContent = `Pendientes: ${
-    tasks.filter((t) => !t.completed).length
-  }`;
-  countDone.textContent = `Completadas: ${
-    tasks.filter((t) => t.completed).length
-  }`;
+  countPending.textContent = `Pendientes: ${tasks.filter(t => !t.completed).length}`;
+  countDone.textContent = `Completadas: ${tasks.filter(t => t.completed).length}`;
 }
 
 function rowTemplate(t) {
@@ -806,22 +706,14 @@ function rowTemplate(t) {
   tr.innerHTML = `
     <td class="editable" data-label="Tarea">
       <span class="task-title">${escapeHtml(t.name)}</span>
-      <span class="meta">Creada: ${new Date(
-        t.createdAt
-      ).toLocaleString()}</span>
+      <span class="meta">Creada: ${new Date(t.createdAt).toLocaleString()}</span>
     </td>
     <td data-label="Fecha">${t.due ? dueLabel : "—"}</td>
-    <td data-label="Prioridad"><span class="badge ${t.priority}">${prioText(
-    t.priority
-  )}</span></td>
-    <td data-label="Estado"><span class="state-chip ${
-      t.completed ? "" : "pending"
-    }">${t.completed ? "Completada" : "Pendiente"}</span></td>
+    <td data-label="Prioridad"><span class="badge ${t.priority}">${prioText(t.priority)}</span></td>
+    <td data-label="Estado"><span class="state-chip ${t.completed ? "" : "pending"}">${t.completed ? "Completada" : "Pendiente"}</span></td>
     <td class="actions-col" data-label="Acciones">
       <div class="row-actions">
-        <button class="btn btn-success" data-action="toggle" aria-label="${
-          t.completed ? "Desmarcar" : "Completar"
-        }">
+        <button class="btn btn-success" data-action="toggle" aria-label="${t.completed ? "Desmarcar" : "Completar"}">
           <span class="ico" aria-hidden="true">
             <!-- check -->
             <svg width="16" height="16" viewBox="0 0 24 24"><path d="M20.285 6.709a1 1 0 0 1 0 1.414l-9.192 9.192a1 1 0 0 1-1.414 0L3.715 11.55a1 1 0 1 1 1.414-1.415l5.243 5.244 8.485-8.485a1 1 0 0 1 1.428-.184z"/></svg>
@@ -852,28 +744,18 @@ async function editTask(task) {
   const { value: formValues } = await Swal.fire({
     title: "Editar tarea",
     html: `
-      <input id="swal-name" class="swal2-input" placeholder="Título" value="${escapeAttr(
-        task.name
-      )}" maxlength="80">
-      <input id="swal-due" type="date" class="swal2-input" value="${
-        task.due || ""
-      }">
+      <input id="swal-name" class="swal2-input" placeholder="Título" value="${escapeAttr(task.name)}" maxlength="80">
+      <input id="swal-due" type="date" class="swal2-input" value="${task.due || ""}">
       <select id="swal-prio" class="swal2-input">
-        <option value="high" ${
-          task.priority === "high" ? "selected" : ""
-        }>Alta</option>
-        <option value="medium" ${
-          task.priority === "medium" ? "selected" : ""
-        }>Media</option>
-        <option value="low" ${
-          task.priority === "low" ? "selected" : ""
-        }>Baja</option>
+        <option value="high" ${task.priority === "high" ? "selected" : ""}>Alta</option>
+        <option value="medium" ${task.priority === "medium" ? "selected" : ""}>Media</option>
+        <option value="low" ${task.priority === "low" ? "selected" : ""}>Baja</option>
       </select>
     `,
     focusConfirm: false,
     preConfirm: () => {
       const name = document.getElementById("swal-name").value.trim();
-      const due = document.getElementById("swal-due").value || null;
+      const due  = document.getElementById("swal-due").value || null;
       const prio = document.getElementById("swal-prio").value;
       if (!name) {
         Swal.showValidationMessage("El título no puede estar vacío");
@@ -883,7 +765,7 @@ async function editTask(task) {
     },
     showCancelButton: true,
     confirmButtonText: "Guardar",
-    cancelButtonText: "Cancelar",
+    cancelButtonText: "Cancelar"
   });
 
   if (formValues) {
@@ -891,14 +773,8 @@ async function editTask(task) {
     task.due = formValues.due;
     task.priority = formValues.priority;
     task.updatedAt = Date.now();
-    saveTasks();
-    render();
-    Swal.fire({
-      icon: "success",
-      title: "Cambios guardados",
-      timer: 1200,
-      showConfirmButton: false,
-    });
+    saveTasks(); render();
+    Swal.fire({ icon: "success", title: "Cambios guardados", timer: 1200, showConfirmButton: false });
   }
 }
 
@@ -906,30 +782,14 @@ function loadTasks() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
+  } catch { return []; }
 }
-function saveTasks() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-}
+function saveTasks() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
 function restoreTheme() {
   const pref = localStorage.getItem(THEME_KEY);
   if (pref === "light") document.documentElement.classList.add("light");
 }
 
-function prioText(p) {
-  return p === "high" ? "Alta" : p === "low" ? "Baja" : "Media";
-}
-function escapeHtml(str) {
-  return str.replace(
-    /[&<>"']/g,
-    (m) =>
-      ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[
-        m
-      ])
-  );
-}
-function escapeAttr(str) {
-  return escapeHtml(str);
-}
+function prioText(p) { return p === "high" ? "Alta" : p === "low" ? "Baja" : "Media"; }
+function escapeHtml(str) { return str.replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
+function escapeAttr(str) { return escapeHtml(str); }
