@@ -124,6 +124,15 @@ body {
   color: var(--muted);
 }
 
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  cursor: pointer;
+}
+
+:root.light input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(0);
+}
+
 .icon-btn {
   justify-self: end;
   border: 1px solid var(--border);
