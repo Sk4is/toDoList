@@ -70,6 +70,30 @@ body {
   align-items: center;
 }
 
+.icon-sun {
+  display: block;
+}
+.icon-moon {
+  display: none;
+}
+
+:root.light .icon-sun {
+  display: none;
+}
+:root.light .icon-moon {
+  display: block;
+}
+
+:root.light #themeToggle {
+  background: var(--chip);
+  color: #0f172a;
+}
+
+:root:not(.light) #themeToggle {
+  background: var(--chip);
+  color: #e7eef7;
+}
+
 .brand {
   display: flex;
   align-items: center;
