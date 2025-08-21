@@ -352,6 +352,23 @@ tr.completed .task-title {
   text-decoration: line-through;
 }
 
+tr.completed {
+  background: rgba(34, 197, 94, 0.08);
+}
+
+tr.completed td {
+  color: #b9ffd1;
+}
+
+tr.completed .task-title {
+  text-decoration: line-through;
+  color: #86efac;
+}
+
+tr.completed .meta {
+  color: #6ee7b7;
+}
+
 td.editable {
   cursor: text;
 }
