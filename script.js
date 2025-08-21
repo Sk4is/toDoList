@@ -1,4 +1,3 @@
-// ===== Utilidades =====
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
@@ -7,7 +6,6 @@ const THEME_KEY = "todo.theme";
 
 const priorityWeight = { high: 3, medium: 2, low: 1 };
 
-// ===== Elementos =====
 const form = $("#formulary");
 const inputTask = $("#task");
 const inputDue = $("#due");
@@ -27,11 +25,9 @@ const clearCompletedBtn = $("#clearCompleted");
 const markAllDoneBtn = $("#markAllDone");
 const themeToggle = $("#themeToggle");
 
-// === Captura: un botón y un input (usamos ambos flujos)
 const scanBtn = $("#scanBtn");
 const scanInput = $("#scanInput");
 
-// === Modal de cámara (getUserMedia)
 const cameraModal = $("#cameraModal");
 const camClose = $("#camClose");
 const camPreview = $("#camPreview");
@@ -47,15 +43,12 @@ let usingFacing = "environment";
 let torchOn = false;
 let rotation = 0;
 
-// ===== Estado =====
 let tasks = loadTasks();
 let ui = { query: "", filter: "all", sort: "createdDesc" };
 
-// ===== Inicio =====
 restoreTheme();
 render();
 
-// ===== Listeners =====
 form.addEventListener("submit", (e) => {
   e.preventDefault();
   const name = inputTask.value.trim();
@@ -121,7 +114,6 @@ themeToggle.addEventListener("click", () => {
   localStorage.setItem(THEME_KEY, isLight ? "light" : "dark");
 });
 
-// Delegación de eventos para acciones de filas (tabla)
 tbody.addEventListener("click", async (e) => {
   const btn = e.target.closest("button[data-action]");
   if (!btn) return;
@@ -160,7 +152,6 @@ tbody.addEventListener("click", async (e) => {
   }
 });
 
-// Doble click en título para editar
 tbody.addEventListener("dblclick", async (e) => {
   const cell = e.target.closest("td.editable");
   if (!cell) return;
@@ -172,9 +163,6 @@ tbody.addEventListener("dblclick", async (e) => {
   await editTask(task);
 });
 
-// ======== CAPTURA: Cámara o Galería ========
-
-// Botón principal: elegir cámara (modal) o galería (input)
 scanBtn.addEventListener("click", async () => {
   const res = await Swal.fire({
     title: "Añadir desde foto",
@@ -186,13 +174,11 @@ scanBtn.addEventListener("click", async () => {
     cancelButtonText: "Cancelar",
   });
   if (res.isConfirmed) {
-    // Intentamos getUserMedia; si falla, caemos a input con capture
     try {
       await openCameraModal();
     } catch {
       scanInput.setAttribute("capture", "environment");
       scanInput.click();
-      // quitamos capture tras abrir para que no fuerce cámara siempre
       setTimeout(() => scanInput.removeAttribute("capture"), 0);
     }
   } else if (res.isDenied) {
@@ -201,7 +187,6 @@ scanBtn.addEventListener("click", async () => {
   }
 });
 
-// Galería / cámara nativa
 scanInput.addEventListener("change", async () => {
   const file = scanInput.files?.[0];
   if (!file) return;
@@ -209,17 +194,13 @@ scanInput.addEventListener("change", async () => {
   try {
     showOcrProgress();
 
-    // 1) Cargamos respetando orientación
     const bmp = await toImageBitmap(file);
 
-    // 2) Hacemos un lienzo base a buena escala (sin perder detalle)
     const base = bitmapToBaseCanvas(bmp);
 
-    // 3) Generamos dos variantes: mejorada y binarizada
-    const enhanced = enhanceCanvas(base);        // gris + contraste/brillo
-    const bin      = binarizeWithOtsu(enhanced); // umbral Otsu sobre la mejorada
+    const enhanced = enhanceCanvas(base);
+    const bin      = binarizeWithOtsu(enhanced);
 
-    // 4) Probamos varias combinaciones y elegimos el mejor texto
     const text = await ocrMulti(bin, enhanced);
 
     Swal.close();
@@ -233,7 +214,6 @@ scanInput.addEventListener("change", async () => {
   }
 });
 
-// Polyfill toBlob para Safari/iOS antiguos
 if (!HTMLCanvasElement.prototype.toBlob) {
   HTMLCanvasElement.prototype.toBlob = function (callback, type, quality) {
     const dataURL = this.toDataURL(type, quality);
@@ -245,9 +225,9 @@ if (!HTMLCanvasElement.prototype.toBlob) {
   };
 }
 
-// ==== Modal de cámara (getUserMedia) ====
 async function openCameraModal() {
   rotation = 0; torchOn = false;
+  document.body.classList.add("no-scroll");
   cameraModal.hidden = false;
   await startCamera();
 }
@@ -259,18 +239,14 @@ camSwitch?.addEventListener("click", async () => {
   await startCamera();
 });
 
-// Estos botones ya no existen en tu HTML; protégelos para que no rompan
 camTorch?.addEventListener("click", async () => { await toggleTorch(); });
 camRotateL?.addEventListener("click", () => { rotation = (rotation - 90 + 360) % 360; });
 camRotateR?.addEventListener("click", () => { rotation = (rotation + 90) % 360; });
 
-// IMPORTANTE: registra SIEMPRE el listener de Capturar
 camShot?.addEventListener("click", async () => {
   try {
-    // inicia/reinicia cámara si no hay stream
     if (!camStream) { await startCamera(); }
 
-    // asegura frame listo antes de capturar
     await ensureVideoReady(camPreview);
 
     camShot.disabled = true;
@@ -288,12 +264,16 @@ camShot?.addEventListener("click", async () => {
   }
 });
 
-function closeCameraModal() { stopCamera(); cameraModal.hidden = true; }
+function closeCameraModal() {
+  stopCamera();
+  cameraModal.hidden = true;
+  document.body.classList.remove("no-scroll");
+}
 
 async function startCamera() {
   stopCamera();
   try {
-    camPreview.setAttribute("playsinline", ""); // iOS
+    camPreview.setAttribute("playsinline", "");
     camPreview.playsInline = true;
     camPreview.muted = true;
 
@@ -308,20 +288,18 @@ async function startCamera() {
 
     camPreview.srcObject = camStream;
 
-    // Espera a que el video tenga dimensiones reales
     await ensureVideoReady(camPreview);
 
-    // Apaga linterna por defecto
     await setTorch(false);
   } catch (err) {
     stopCamera();
     cameraModal.hidden = true;
-    throw err; // deja que haga fallback al <input capture>
+    throw err;
   }
 }
 
 async function ensureVideoReady(video) {
-  try { await video.play(); } catch {} // algunos navegadores exigen play()
+  try { await video.play(); } catch {}
   if (video.readyState >= 2 && video.videoWidth && video.videoHeight) return;
 
   await new Promise((resolve) => {
@@ -338,12 +316,10 @@ async function ensureVideoReady(video) {
     video.addEventListener("loadedmetadata", onReady);
     video.addEventListener("canplay", onReady);
 
-    // requestVideoFrameCallback disponible en Chrome/Safari modernos
     if ("requestVideoFrameCallback" in video) {
       video.requestVideoFrameCallback(() => onReady());
     }
 
-    // Fallback de seguridad
     setTimeout(onReady, 800);
   });
 }
@@ -372,7 +348,6 @@ async function setTorch(on) {
   } catch { return false; }
 }
 
-// Capturar frame + preprocesado (gris + umbral)
 function captureFrame({ rotation = 0 } = {}) {
   const video = camPreview;
   const vw = video.videoWidth, vh = video.videoHeight;
@@ -403,12 +378,12 @@ function captureFrame({ rotation = 0 } = {}) {
 
   const id = ctx.getImageData(0, 0, W, H);
   const d = id.data;
-  for (let i = 0; i < d.length; i += 4) { // gris
+  for (let i = 0; i < d.length; i += 4) {
     const y = (d[i]*0.299 + d[i+1]*0.587 + d[i+2]*0.114);
     d[i]=d[i+1]=d[i+2]=y;
   }
   const th = otsuThreshold(d);
-  for (let i = 0; i < d.length; i += 4) { // binario
+  for (let i = 0; i < d.length; i += 4) {
     const v = d[i] > th ? 255 : 0;
     d[i]=d[i+1]=d[i+2]=v;
   }
@@ -434,11 +409,9 @@ function otsuThreshold(data) {
   return thr;
 }
 
-// Reemplaza tu ocrCanvas por esta:
 async function ocrCanvas(canvas) {
   showOcrProgress();
 
-  // Creamos variantes a partir del canvas recibido
   const enhanced = enhanceCanvas(canvas);
   const bin = binarizeWithOtsu(enhanced);
 
@@ -448,9 +421,8 @@ async function ocrCanvas(canvas) {
   return text;
 }
 
-// Escala base (máx 2560px lado largo) sin emborronar
 function bitmapToBaseCanvas(img) {
-  const MAX = 2560;                        // subimos límite para más detalle
+  const MAX = 2560;
   const w = img.width || img.naturalWidth;
   const h = img.height || img.naturalHeight;
   let cw = w, ch = h;
@@ -462,27 +434,23 @@ function bitmapToBaseCanvas(img) {
   const c = document.createElement("canvas");
   c.width = cw; c.height = ch;
   const g = c.getContext("2d", { willReadFrequently: true });
-  g.imageSmoothingEnabled = true;          // suavizado al reducir
+  g.imageSmoothingEnabled = true;
   g.drawImage(img, 0, 0, cw, ch);
   return c;
 }
 
-// Grises + realce de contraste/brillo (mejora bordes)
 function enhanceCanvas(src) {
   const c = document.createElement("canvas");
   c.width = src.width; c.height = src.height;
   const ctx = c.getContext("2d", { willReadFrequently: true });
 
-  // Aplicamos filtros de dibujo para ganar contraste y quitar color
   ctx.filter = "grayscale(100%) contrast(140%) brightness(108%)";
   ctx.drawImage(src, 0, 0, c.width, c.height);
 
-  // Un “toque” de nitidez (unsharp mask simple)
   const id = ctx.getImageData(0, 0, c.width, c.height);
   const d = id.data;
   for (let i = 0; i < d.length; i += 4) {
-    const y = d[i]; // ya estamos en gris, R=G=B=Y por el filtro
-    // realce local leve
+    const y = d[i];
     const v = Math.min(255, Math.max(0, y * 1.05 + 8));
     d[i] = d[i + 1] = d[i + 2] = v;
   }
@@ -490,7 +458,6 @@ function enhanceCanvas(src) {
   return c;
 }
 
-// Umbral de Otsu sobre la imagen mejorada
 function binarizeWithOtsu(src) {
   const c = document.createElement("canvas");
   c.width = src.width; c.height = src.height;
@@ -499,11 +466,9 @@ function binarizeWithOtsu(src) {
   const id = ctx.getImageData(0, 0, c.width, c.height);
   const d = id.data;
 
-  // Histograma en gris
   const hist = new Array(256).fill(0);
   for (let i = 0; i < d.length; i += 4) hist[d[i]]++;
 
-  // Otsu
   const total = d.length / 4;
   let sum = 0; for (let i = 0; i < 256; i++) sum += i * hist[i];
   let sumB = 0, wB = 0, max = 0, thr = 127;
@@ -516,7 +481,6 @@ function binarizeWithOtsu(src) {
     if (between > max) { max = between; thr = t; }
   }
 
-  // Binarización
   for (let i = 0; i < d.length; i += 4) {
     const v = d[i] > thr ? 255 : 0;
     d[i] = d[i + 1] = d[i + 2] = v;
@@ -525,7 +489,6 @@ function binarizeWithOtsu(src) {
   return c;
 }
 
-// Probamos varias combinaciones (bin/enhanced x PSM 4/6) y elegimos la mejor
 async function ocrMulti(binCanvas, enhancedCanvas) {
   const variants = [
     { img: binCanvas,      psm: 4 },
@@ -540,15 +503,11 @@ async function ocrMulti(binCanvas, enhancedCanvas) {
     const blob = await new Promise(res => v.img.toBlob(res, "image/png", 1));
     const opts = {
       logger: updateOcrProgress,
-      // Lenguas
-      // psm: 4=columna de texto; 6=bloque uniforme
       psm: v.psm,
-      // Afinar OCR:
       preserve_interword_spaces: "1",
       user_defined_dpi: "300",
       load_system_dawg: "1",
       load_freq_dawg: "1",
-      // Evitar símbolos raros: dejamos letras (incluye tildes), dígitos, espacio y separadores sencillos
       tessedit_char_whitelist:
         "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÜÑabcdefghijklmnopqrstuvwxyzáéíóúüñ 0123456789-.,;:/()xX%",
     };
@@ -559,15 +518,12 @@ async function ocrMulti(binCanvas, enhancedCanvas) {
     const score = scoreOcr(text, items.length, data.confidence ?? 0);
 
     if (score > best.score) best = { score, text };
-    // Criterio de parada anticipada: suficiente calidad
     if (items.length >= 5 && (data.confidence ?? 0) > 70) break;
   }
   return best.text;
 }
 
-// Puntuación simple para elegir el mejor intento
 function scoreOcr(text, items, conf) {
-  // más líneas útiles + algo de confianza + algo de longitud total
   return items * 2 + (conf / 10) + Math.min(30, text.length / 10);
 }
 
@@ -589,12 +545,10 @@ function updateOcrProgress(m) {
   if (b && typeof m.progress === 'number') b.style.width = `${Math.round(m.progress*100)}%`;
 }
 
-// Carga respetando orientación EXIF si hay createImageBitmap
 async function toImageBitmap(file) {
   if ('createImageBitmap' in window) {
     return await createImageBitmap(file, { imageOrientation: 'from-image' });
   }
-  // Fallback
   const img = await new Promise((resolve, reject) => {
     const i = new Image(); i.onload = () => resolve(i); i.onerror = reject;
     i.src = URL.createObjectURL(file);
@@ -628,7 +582,6 @@ function bitmapToProcessedCanvas(img) {
   return c;
 }
 
-/* === Importación directa: una línea = una tarea === */
 async function importDirect(text) {
   const items = parseShopping(text);
   if (!items.length) {
@@ -650,7 +603,6 @@ async function importDirect(text) {
   Swal.fire({ icon:"success", title:`Importadas ${newTasks.length} tareas`, timer:1200, showConfirmButton:false });
 }
 
-/* Parser para listas de la compra */
 function parseShopping(input) {
   if (!input) return [];
   const raw = input
@@ -680,9 +632,7 @@ function parseShopping(input) {
   return out;
 }
 
-// ===== Render =====
 function render() {
-  // Filtro + búsqueda
   let list = tasks.filter(t => {
     const matchQuery = !ui.query || t.name.toLowerCase().includes(ui.query);
     const matchFilter =
@@ -692,7 +642,6 @@ function render() {
     return matchQuery && matchFilter;
   });
 
-  // Orden
   list.sort((a, b) => {
     switch (ui.sort) {
       case "createdAsc":  return a.createdAt - b.createdAt;
@@ -713,28 +662,32 @@ function render() {
     return 0;
   });
 
-  // Construir filas
   tbody.innerHTML = "";
+  const wrapper = document.querySelector(".table-wrapper");
 
   if (list.length === 0) {
+    const ths = Array.from(document.querySelectorAll("#table thead th"));
+    const visibleCols = ths.filter(th => getComputedStyle(th).display !== "none").length || 1;
+    const emptyCell = noRow.querySelector("td");
+    if (emptyCell) emptyCell.colSpan = visibleCols;
+
     tbody.appendChild(noRow);
     noRow.style.display = "";
+    wrapper?.classList.add("is-empty");
   } else {
     noRow.style.display = "none";
+    wrapper?.classList.remove("is-empty");
+
     const frag = document.createDocumentFragment();
-    for (const t of list) {
-      frag.appendChild(rowTemplate(t));
-    }
+    for (const t of list) frag.appendChild(rowTemplate(t));
     tbody.appendChild(frag);
   }
 
-  // Contadores
   countTotal.textContent = `Total: ${tasks.length}`;
   countPending.textContent = `Pendientes: ${tasks.filter(t => !t.completed).length}`;
   countDone.textContent = `Completadas: ${tasks.filter(t => t.completed).length}`;
 }
 
-// ===== Plantilla de fila (con data-label para móvil) =====
 function rowTemplate(t) {
   const tr = document.createElement("tr");
   tr.dataset.id = t.id;
@@ -760,16 +713,33 @@ function rowTemplate(t) {
     <td data-label="Estado"><span class="state-chip ${t.completed ? "" : "pending"}">${t.completed ? "Completada" : "Pendiente"}</span></td>
     <td class="actions-col" data-label="Acciones">
       <div class="row-actions">
-        <button class="btn btn-success" data-action="toggle">${t.completed ? "Desmarcar" : "Completar"}</button>
-        <button class="btn btn-edit" data-action="edit">Editar</button>
-        <button class="btn btn-danger" data-action="delete">Eliminar</button>
+        <button class="btn btn-success" data-action="toggle" aria-label="${t.completed ? "Desmarcar" : "Completar"}">
+          <span class="ico" aria-hidden="true">
+            <!-- check -->
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M20.285 6.709a1 1 0 0 1 0 1.414l-9.192 9.192a1 1 0 0 1-1.414 0L3.715 11.55a1 1 0 1 1 1.414-1.415l5.243 5.244 8.485-8.485a1 1 0 0 1 1.428-.184z"/></svg>
+          </span>
+          <span class="txt">${t.completed ? "Desmarcar" : "Completar"}</span>
+        </button>
+        <button class="btn btn-edit" data-action="edit" aria-label="Editar">
+          <span class="ico" aria-hidden="true">
+            <!-- pencil -->
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+          </span>
+          <span class="txt">Editar</span>
+        </button>
+        <button class="btn btn-danger" data-action="delete" aria-label="Eliminar">
+          <span class="ico" aria-hidden="true">
+            <!-- trash -->
+            <svg width="16" height="16" viewBox="0 0 24 24"><path d="M9 3h6a1 1 0 0 1 1 1v1h4v2H4V5h4V4a1 1 0 0 1 1-1zm1 6h2v9h-2V9zm4 0h2v9h-2V9zM7 9h2v9H7V9z"/></svg>
+          </span>
+          <span class="txt">Eliminar</span>
+        </button>
       </div>
     </td>
   `;
   return tr;
 }
 
-// ===== Editar tarea (modal) =====
 async function editTask(task) {
   const { value: formValues } = await Swal.fire({
     title: "Editar tarea",
@@ -808,7 +778,6 @@ async function editTask(task) {
   }
 }
 
-// ===== Persistencia =====
 function loadTasks() {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -821,7 +790,6 @@ function restoreTheme() {
   if (pref === "light") document.documentElement.classList.add("light");
 }
 
-// ===== Helpers =====
 function prioText(p) { return p === "high" ? "Alta" : p === "low" ? "Baja" : "Media"; }
 function escapeHtml(str) { return str.replace(/[&<>"']/g, m => ({ "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;" }[m])); }
 function escapeAttr(str) { return escapeHtml(str); }

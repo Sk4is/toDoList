@@ -417,7 +417,7 @@ td.empty {
   width: 100%;
   height: auto;
   display: block;
-  object-fit: contain;
+  object-fit: cover;
   max-height: 70vh;
 }
 .camodal-actions {
@@ -482,6 +482,123 @@ thead th {
   .row-actions .btn {
     flex: 1 1 100%;
   }
+}
+
+/* ====== CAMARA: modal 100% viewport + acciones siempre visibles ====== */
+.camodal {
+  position: fixed;
+  inset: 0;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.6);
+  display: grid;
+  place-items: center;
+  padding: max(8px, env(safe-area-inset-top))
+    max(8px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom))
+    max(8px, env(safe-area-inset-left));
+}
+
+.camodal-inner {
+  width: min(100%, 560px);
+  height: min(100dvh - 16px, 760px);
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  box-shadow: var(--shadow);
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+}
+
+.camodal-body {
+  position: relative;
+  background: #000;
+  min-height: 0; /* permite que el video calcule bien altura */
+}
+
+#camPreview,
+#camCanvas {
+  width: 100%;
+  height: 100%;
+  max-height: none;
+  display: block;
+  object-fit: contain; /* sin recorte; cambia a 'cover' si prefieres sin bandas */
+}
+
+.camodal-actions {
+  position: sticky;
+  bottom: 0;
+  background: var(--card);
+  border-top: 1px solid var(--border);
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  padding: 10px;
+}
+
+@media (min-width: 480px) {
+  .camodal-actions {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* Evita que el body haga scroll detrás del modal */
+body.no-scroll {
+  overflow: hidden;
+}
+
+/* ====== TABLA: sin scroll horizontal en móvil y más compacta ====== */
+@media (max-width: 640px) {
+  /* Oculta la columna FECHA (th y td 2) */
+  thead th:nth-child(2),
+  tbody td:nth-child(2) {
+    display: none;
+  }
+
+  thead th {
+    font-size: 11px;
+    padding: 10px 12px;
+  }
+  tbody td {
+    font-size: 13px;
+    padding: 10px 12px;
+  }
+
+  /* Acciones más estrechas */
+  .actions-col {
+    width: auto;
+  }
+  .row-actions {
+    gap: 6px;
+  }
+  .btn {
+    padding: 6px 8px;
+    font-size: 12px;
+  }
+}
+
+/* ====== ACCIONES: texto en desktop, iconos compactos en móvil ====== */
+.btn .ico {
+  display: none;
+  line-height: 0;
+}
+.btn .txt {
+  display: inline;
+}
+
+@media (max-width: 480px) {
+  .btn {
+    padding: 8px;
+    border-radius: 10px;
+  }
+  .btn .ico {
+    display: inline-block;
+  }
+  .btn .txt {
+    display: none;
+  } /* ahorra ancho en móvil */
+  .row-actions {
+    flex-wrap: nowrap;
+  } /* evitas que “salten” de línea */
 }
 
 footer {
@@ -654,8 +771,6 @@ tbody td {
   }
 }
 
-
-
 @media (max-width: 480px) {
   .app-header {
     grid-template-columns: 1fr auto;
@@ -731,4 +846,30 @@ tbody td {
   }
 }
 
+@media (max-width: 640px) {
+  /* Oculta FECHA y PRIORIDAD */
+  thead th:nth-child(2),
+  tbody td:nth-child(2),
+  thead th:nth-child(3),
+  tbody td:nth-child(3) {
+    display: none;
+  }
+}
 
+/* Nada de min-width en móvil */
+@media (max-width: 480px) {
+  .table-wrapper table {
+    min-width: unset !important;
+    width: 100%;
+  }
+}
+
+/* Cuando la tabla está vacía, sin scroll horizontal */
+.table-wrapper.is-empty {
+  overflow-x: hidden !important;
+}
+
+/* Asegura centrado del mensaje vacío en todas las vistas */
+#no-tasks-row td {
+  text-align: center;
+}
